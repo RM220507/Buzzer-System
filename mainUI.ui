@@ -289,11 +289,74 @@
                       <property name="fill">x</property>
                       <property name="side">top</property>
                     </layout>
+                    <containerlayout manager="grid">
+                      <property type="col" id="0" name="weight">1</property>
+                      <property type="col" id="1" name="weight">1</property>
+                      <property type="col" id="2" name="weight">1</property>
+                    </containerlayout>
                     <child>
-                      <object class="customtkinter.CTkButton" id="buzzer" named="True">
-                        <property name="text" translatable="yes">ctkbutton9</property>
-                        <layout manager="pack">
-                          <property name="side">top</property>
+                      <object class="customtkinter.CTkButton" id="buzzerControlBuzzedOpenAllButton" named="True">
+                        <property name="command" type="command" cbtype="simple">buzzerOpenAll</property>
+                        <property name="text" translatable="yes">Reopen to All</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="rowspan">2</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlBuzzedOpenLockIndButton" named="True">
+                        <property name="command" type="command" cbtype="simple">buzzerOpenLockInd</property>
+                        <property name="text" translatable="yes">Reopen - Lock Individual</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlBuzzedOpenLockTeamButton" named="True">
+                        <property name="command" type="command" cbtype="simple">buzzerOpenLockTeam</property>
+                        <property name="text" translatable="yes">Reopen - Lock Team</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlBuzzedCorrectButton" named="True">
+                        <property name="command" type="command" cbtype="simple">answeredCorrectly</property>
+                        <property name="text" translatable="yes">Correct</property>
+                        <layout manager="grid">
+                          <property name="column">2</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlBuzzedSkipButton" named="True">
+                        <property name="command" type="command" cbtype="simple">skipQuestion</property>
+                        <property name="text" translatable="yes">Skip Question</property>
+                        <layout manager="grid">
+                          <property name="column">2</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
                         </layout>
                       </object>
                     </child>
