@@ -13,6 +13,6 @@ class Interface(ctk.CTk):
         
         self.title("Buzzer System")
         
-        
+
 app = Interface()
 app.mainloop()

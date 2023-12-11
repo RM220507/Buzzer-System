@@ -16,5 +16,13 @@
     "workbench.colorCustomizations": {
         "minimap.background": "#00000000",
         "scrollbar.shadow": "#00000000"
-    }
+    },
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "Buzzer DB",
+            "database": "${workspaceFolder:Buzzer System}/buzzer.db"
+        }
+    ]
 }

@@ -18,7 +18,6 @@ class Team:
         self.__buzzers = []
         for i, pinIndex in enumerate(pins):
             if pinIndex >= len(AVAILABLE_PINS):
-                print("Invalid pin")
                 continue
             
             newBuzzer = Buzzer(i, self.__ID, pinIndex)
@@ -46,6 +45,14 @@ class Team:
     def reset(self):
         for buzzer in self.__buzzers:
             buzzer.reset()
+            
+    def close(self):
+        for buzzer in self.__buzzers:
+            buzzer.close()
+            
+    @property
+    def teamID(self):
+        return self.__ID
 
 class Buzzer:
     def __init__(self, ID, teamID, pinIndex):
@@ -56,7 +63,7 @@ class Buzzer:
         self.__isLocked = False
         
         self.__btn = Pin(AVAILABLE_PINS[pinIndex], Pin.IN, Pin.PULL_DOWN)
-        self.__btn.irq(trigger=Pin.IRQ_RISING, handler=self.pressed)
+        self.__btn.irq(handler=self.pressed, trigger=Pin.IRQ_RISING)
         
         self.__pixels = list(range(pinIndex * PIXELS_PER_BUZZER, (pinIndex * PIXELS_PER_BUZZER) + PIXELS_PER_BUZZER))
         
@@ -83,8 +90,6 @@ class Buzzer:
     def state(self, newState):
         if newState in ["inactive", "waiting", "active", "locked"]:
             self.__state = newState
-        else:
-            print("Err: Invalid state")
             
     def lock(self):
         self.state = "locked"
@@ -95,9 +100,11 @@ class Buzzer:
             self.state = "locked"
         else:
             self.state = "waiting"
+            self.__btn.irq(handler=self.pressed, trigger=Pin.IRQ_RISING)
             
     def close(self):
         self.state = "inactive"
+        self.__btn.irq(handler=None, trigger=Pin.IRQ_RISING)
         
     def reset(self):
         self.__isLocked = False
@@ -116,23 +123,28 @@ class BuzzerController:
         
         self.__activeBuzzer = None
         
-        self.setupTeams([[0, 1], [2]])
         self.updatePixels()
     
     def buzzerPressed(self, event, buzzer):
-        if not self.__waitingForPress:
-            return
+        if not self.__waitingForPress: return
         
-        self.__waitingForPress = False
+        self.close()
+        
         self.__activeBuzzer = buzzer
-        buzzer.state = "active"
-        print(f"Buzzer Pressed: Team {buzzer.teamID}, Buzzer {buzzer.ID}")
+        self.__activeBuzzer.state = "active"
         self.updatePixels()
         
+        print(f"buzzed {buzzer.teamID} {buzzer.ID}")
+        
     def setupTeams(self, teamArray):
-        for i, pins in enumerate(teamArray):
-            newTeam = Team(i, pins, {"inactive" : (0, 0, 128), "waiting" : (128, 128, 128), "active" : (0, 128, 0), "locked" : (128, 0, 0)})
+        self.close()
+        self.__teams = []
+        
+        for teamID, pinIndexes, colorProfile in teamArray:
+            newTeam = Team(teamID, pinIndexes, colorProfile)
             self.__teams.append(newTeam)
+        
+        self.updatePixels()
             
     def updatePixels(self):
         if self.__displayLight:
@@ -176,18 +188,26 @@ class BuzzerController:
         for team in self.__teams:
             if team.teamID == teamID:
                 team.openAll()
+            else:
+                team.close()
         
         self.setActive()
         
-    def openLockInd(self, teamID = None):
-        if teamID == None and self.__activeBuzzer:
+    def openLockInd(self):
+        if self.__activeBuzzer:
             teamID = self.__activeBuzzer.teamID
+            buzzerID = self.__activeBuzzer.ID
+        else: # THIS NEEDS BETTER FAIL OVER
+            teamID = 0
+            buzzerID = 0
             
         for team in self.__teams:
             if team.teamID == teamID:
-                team.openLockInd(teamID)
+                team.openLockInd(buzzerID)
             else:
                 team.openAll()
+                
+        self.setActive()
                 
     def reset(self):
         for team in self.__teams:
@@ -195,38 +215,69 @@ class BuzzerController:
             
         self.setActive(False)
         
-    # ADD CLOSE FUNCTION
-    # MAKE SURE PIXELS UPDATE WHEN BUZZER PRESSED
+    def close(self):
+        self.__activeBuzzer = None
+        for team in self.__teams:
+            team.close()
+            
+        self.setActive(False)
         
 buzzerController = BuzzerController()
 
 poll_obj = select.poll()
 poll_obj.register(sys.stdin, 1)
 
-while True:
-    if poll_obj.poll(0):
-        serialInput = sys.stdin.readline()
-        command = serialInput.split()
-        print(command)
-        
-        # THE VALIDATION HERE NEEDS TO BE BETTER
-        if command[0] == "light":
-            if command[1] == "toggle":
-                buzzerController.toggleLight()
-        elif command[0] == "open":
-            if command[1] == "all":
-                buzzerController.openAll()
-            elif command[1] == "lockTeam":
-                if command[2] == "active":
-                    buzzerController.openLockTeam()
-                elif command[2].isdigit() and 0 <= int(command[2]) < buzzerController.teamCount:
-                    buzzerController.openLockTeam(int(command[2]))
-            elif command[1] == "team":
-                if command[2].isdigit() and 0 <= int(command[2]) < buzzerController.teamCount:
-                    buzzerController.openTeam(int(command[2]))
-            elif command[1] == "lockInd":
-                if command[2] == "active":
-                    buzzerController.openLockInd()
-                # ADD ABILITY TO LOCK SPECIFIC INDIVIDUAL
-            elif command[1] == "reset":
+try:
+    while True:
+        if poll_obj.poll(0):
+            serialInput = sys.stdin.readline()
+            command = serialInput.split()
+            # THE VALIDATION HERE NEEDS TO BE BETTER
+            if command[0] == "light":
+                if command[1] == "toggle":
+                    buzzerController.toggleLight()
+            elif command[0] == "open":
+                if command[1] == "all":
+                    buzzerController.openAll()
+                elif command[1] == "lockTeam":
+                    if command[2] == "active":
+                        buzzerController.openLockTeam()
+                    elif command[2].isdigit() and 0 <= int(command[2]) < buzzerController.teamCount:
+                        buzzerController.openLockTeam(int(command[2]))
+                elif command[1] == "team":
+                    if command[2].isdigit() and 0 <= int(command[2]) < buzzerController.teamCount:
+                        buzzerController.openTeam(int(command[2]))
+                elif command[1] == "lockInd":
+                    if command[2] == "active":
+                        buzzerController.openLockInd()
+                    # ADD ABILITY TO LOCK SPECIFIC INDIVIDUAL
+            elif command[0] == "reset":
                 buzzerController.reset()
+            elif command[0] == "close":
+                buzzerController.close()
+            elif command[0] == "teamSetup":
+                allTeams = " ".join(command[1:])
+                
+                teamArray = []
+                for teamStr in allTeams.split(";"):
+                    teamStr = teamStr.strip()
+                    teamVals = teamStr.split("/")
+                    
+                    teamID = int(teamVals[0].strip())
+                    teamPinIndexes = [int(i) for i in teamVals[1].strip().split()]
+                    
+                    teamColors = [int(i) for i in teamVals[2].strip().split()]
+                    teamColorProfile = {
+                        "inactive" : teamColors[0 : 3],
+                        "waiting" : teamColors[3 : 6],
+                        "active" : teamColors[6 : 9],
+                        "locked" : teamColors[9 : 12]
+                    }
+                    
+                    teamData = (teamID, teamPinIndexes, teamColorProfile)
+                    teamArray.append(teamData)
+                buzzerController.setupTeams(teamArray)
+except Exception as e:
+    print(e)
+    
+# teamSetup 0 / 0 1 / 50 50 50 128 128 128 128 0 128 128 0 0; 1 / 2 / 50 50 50 128 128 128 128 0 128 128 0 0
