@@ -58,20 +58,6 @@
                   </object>
                 </child>
                 <child>
-                  <object class="customtkinter.CTkButton" id="questionSetEditButton" named="True">
-                    <property name="command" type="command" cbtype="simple">editQuestionSet</property>
-                    <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Edit Set</property>
-                    <layout manager="grid">
-                      <property name="column">1</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="sticky">e</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
                   <object class="customtkinter.CTkButton" id="newQuestionSetButton" named="True">
                     <property name="command" type="command" cbtype="simple">newQuestionSet</property>
                     <property name="text" translatable="yes">New Set</property>
@@ -378,6 +364,19 @@
                           <property name="pady">5</property>
                           <property name="row">2</property>
                           <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="buzzerControlBuzzedAliasLabel" named="True">
+                        <property name="font">{Bahnschrift SemiBold} 20 {}</property>
+                        <property name="text" translatable="yes">Buzzed Alias</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">2</property>
+                          <property name="columnspan">2</property>
                         </layout>
                       </object>
                     </child>

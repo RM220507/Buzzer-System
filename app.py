@@ -1,6 +1,7 @@
 import pathlib
 import pygubu
 import serial
+import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
@@ -25,12 +26,21 @@ class TeamController:
         self.__activeTeam = None
         self.__activeBuzzer = None
         
-    def applyPenalty(self):
+    def applyActivePenalty(self):
         mixer.Sound.play(Sound.INCORRECT)
         
         for team in self.__teams:
             if team.teamID == self.__activeTeam:
-                team.penalty(self.__questionController.currentPenalty)
+                team.score -= self.__questionController.currentQuestion[4]
+                break
+            
+    def applyActiveScore(self):
+        mixer.Sound.play(Sound.CORRECT)
+        
+        for team in self.__teams:
+            if team.teamID == self.__activeTeam:
+                team.score += self.__questionController.currentQuestion[3]
+                break
                 
     def setActive(self, team, buzzer):
         self.__activeTeam = team
@@ -39,6 +49,19 @@ class TeamController:
     def clearActive(self):
         self.__activeTeam = None
         self.__activeBuzzer = None
+        
+    def getActiveAlias(self):
+        teamAlias = ""
+        buzzerAlias = ""
+        activeColor = "#FFFFFF"
+        for team in self.__teams:
+            if team.teamID == self.__activeTeam:
+                teamAlias = team.alias
+                buzzerAlias = team.getBuzzerAlias(self.__activeBuzzer)
+                activeColor = team.activeColor
+                break
+
+        return teamAlias, buzzerAlias, activeColor
         
     def setupTeams(self, teams):
         self.__teams = []
@@ -63,7 +86,7 @@ class Team:
         self.__colorPalette = [Color.HEXtoRGB(col) for col in colorPalette]
         self.__activeTextCol = colorPalette[2]
         
-        self.__score = 0
+        self.score = 0
         
         self.__buzzers = []
         for i, buzzer in enumerate(buzzers):
@@ -73,6 +96,14 @@ class Team:
     @property
     def teamID(self):
         return self.__ID
+    
+    @property
+    def alias(self):
+        return self.__alias
+    
+    @property
+    def activeColor(self):
+        return self.__activeTextCol
             
     def generateCommand(self):
         command = f"{self.__ID} / "
@@ -87,6 +118,11 @@ class Team:
                 
         return command
     
+    def getBuzzerAlias(self, buzzerID):
+        for buzzer in self.__buzzers:
+            if buzzer.ID == buzzerID:
+                return buzzer.alias
+    
 class Buzzer:
     def __init__(self, ID, pinIndex, alias):
         self.__ID = ID
@@ -100,6 +136,10 @@ class Buzzer:
     @property
     def pinIndex(self):
         return self.__pinIndex
+    
+    @property
+    def alias(self):
+        return self.__alias
         
 class QuestionManager:
     def __init__(self, db, cursor):
@@ -113,11 +153,15 @@ class QuestionManager:
         self.__questionID = 0
         self.__currentQuestion = []
         
+        self.__setLoaded = False
+        
     def getSets(self):
         self.__cursor.execute("SELECT * FROM QuestionSet")
         return self.__cursor.fetchall()
     
     def loadSet(self, ID):
+        self.__setLoaded = True
+        
         self.__cursor.execute("SELECT Name FROM QuestionSet WHERE ID = ?", (ID,))
         setName = self.__cursor.fetchone()
         
@@ -133,7 +177,10 @@ class QuestionManager:
         
     @property
     def currentRound(self):
-        return self.__roundID + 1, self.__rounds[self.__roundID][1]
+        if self.__setLoaded:
+            return self.__roundID + 1, self.__rounds[self.__roundID][1]
+        else:
+            return 0, "No Set Loaded"
     
     @property
     def numRounds(self):
@@ -150,23 +197,26 @@ class QuestionManager:
         self.__currentQuestion = self.__questions[0]
         
     def advanceQuestion(self):
-        if self.__currentQuestion[5] == 0:
-            self.__currentQuestion[5] = 1
-        elif self.__currentQuestion[5] == 1:
-            self.__questionID += 1
-            
-            if self.__questionID >= len(self.__questions):
-                self.__roundID += 1
-                if self.__roundID >= len(self.__rounds):
-                    self.__currentQuestion = ["Game End", "", "", 0, 0, 3]
+        if not self.__setLoaded:
+            self.__currentQuestion =  ["No Set Loaded", "", "", 0, 0, 3]
+        else:
+            if self.__currentQuestion[5] == 0:
+                self.__currentQuestion[5] = 1
+            elif self.__currentQuestion[5] == 1:
+                self.__questionID += 1
+                
+                if self.__questionID >= len(self.__questions):
+                    self.__roundID += 1
+                    if self.__roundID >= len(self.__rounds):
+                        self.__currentQuestion = ["Game End", "", "", 0, 0, 3]
+                    else:
+                        self.__currentQuestion = ["Round Break", "", "", 0, 0, 2]
                 else:
-                    self.__currentQuestion = ["Round Break", "", "", 0, 0, 2]
-            else:
-                self.__currentQuestion = self.__questions[self.__questionID]
-        elif self.__currentQuestion[5] == 2:
-            self.getQuestions()
-        elif self.__currentQuestion[5] == 3:
-            pass # END OF GAME <- DON'T INCREMENT        
+                    self.__currentQuestion = self.__questions[self.__questionID]
+            elif self.__currentQuestion[5] == 2:
+                self.getQuestions()
+            elif self.__currentQuestion[5] == 3:
+                pass # END OF GAME <- DON'T INCREMENT        
         
         return self.__currentQuestion
     
@@ -179,9 +229,25 @@ class SerialController(threading.Thread):
     def __init__(self, readCallback):
         super().__init__(daemon=True)
         
-        self.__port = serial.Serial(port="COM9", baudrate=9600)
+        self.__port = self.findCOMport(516, 3368, 9600)
+        if not self.__port.is_open:
+            raise ConnectionRefusedError("Micro:bit port not found")
         
         self.__readCallback = readCallback
+        
+    def findCOMport(self, PID, VID, baud):
+        serPort = serial.Serial(baudrate=baud)
+        
+        ports = list(list_ports.comports())
+        for p in ports:
+            try:
+                if p.pid == PID and p.vid == VID:
+                    serPort.port = str(p.device)
+                    serPort.open()
+            except AttributeError:
+                continue
+            
+        return serPort
         
     def checkBuffer(self):
         return self.__port.in_waiting > 0
@@ -278,7 +344,7 @@ class BuzzerControlApp:
             self.builder.get_object("bigPictureRoundNameLabel").configure(text=currentRound[1])
 
     def nextQuestion(self):
-        self.clearBigPictureBuzzedLabel()
+        self.clearBuzzerAliasLabel()
         questionData = self.__questionManager.advanceQuestion()
         
         self.buzzerClose()
@@ -326,18 +392,21 @@ class BuzzerControlApp:
     def buzzerOpenAll(self):
         self.__serialController.writeLine("open all")
         self.showBuzzerOpenFrame()
-        self.clearBigPictureBuzzedLabel()
+        self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
         
     def openBigPicture(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
             self.bigPicture = self.builder.get_object("bigPictureDisplay", self.mainwindow)
             
-            self.builder.get_object("bigPictureQuestionLabel").configure(wraplength=1700, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureRoundCountLabel").configure(wraplength=1700, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureRoundNameLabel").configure(wraplength=1700, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureTitleLabel").configure(wraplength=1700, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureSubtitleLabel").configure(wraplength=1700, text_color=Color.WHITE)
+            self.builder.get_object("bigPictureQuestionLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            self.builder.get_object("bigPictureRoundCountLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            self.builder.get_object("bigPictureRoundNameLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            self.builder.get_object("bigPictureTitleLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            self.builder.get_object("bigPictureSubtitleLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            
+            self.updateRoundLabel()
+            self.updateQuestionLabels(self.__questionManager.currentQuestion)
             
             self.showBigPictureBlank()
         else:
@@ -401,38 +470,37 @@ class BuzzerControlApp:
         
     def buzzerOpenTeam(self):
         self.showBuzzerOpenFrame()
-        self.clearBigPictureBuzzedLabel()
+        self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
 
     def buzzerOpenLockInd(self):
         self.__serialController.writeLine("open lockInd active")
         self.showBuzzerOpenFrame()
         
-        self.clearBigPictureBuzzedLabel()
-        self.__teamController.applyPenalty()
+        self.clearBuzzerAliasLabel()
+        self.__teamController.applyActivePenalty()
         self.__teamController.clearActive()
 
     def buzzerOpenLockTeam(self):
         self.__serialController.writeLine("open lockTeam active")
         self.showBuzzerOpenFrame()
         
-        self.clearBigPictureBuzzedLabel()
-        self.__teamController.applyPenalty()
+        self.clearBuzzerAliasLabel()
+        self.__teamController.applyActivePenalty()
         self.__teamController.clearActive()
 
     def resetBuzzers(self):
         self.__serialController.writeLine("reset")
         self.showBuzzerClosedFrame()
-        self.clearBigPictureBuzzedLabel()
+        self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
         
     def answeredCorrectly(self):
-        mixer.Sound.play(Sound.CORRECT)
+        self.__teamController.applyActiveScore()
         self.nextQuestion()
-        # edit score
     
     def answeredIncorrect(self):
-        self.__teamController.applyPenalty()
+        self.__teamController.applyActivePenalty()
         self.nextQuestion()
     
     def buzzCallback(self, data):
@@ -441,21 +509,23 @@ class BuzzerControlApp:
             teamID = int(data[1])
             buzzerID = int(data[2])
             self.__teamController.setActive(teamID, buzzerID)
-            self.updateBigPictureBuzzedLabel(teamID, buzzerID)
+            self.updateBuzzerAliasLabel()
             self.showBuzzerBuzzedFrame()
             mixer.Sound.play(Sound.BUZZED)
             
-    def updateBigPictureBuzzedLabel(self, team, buzzer, color=Color.WHITE):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return 
+    def updateBuzzerAliasLabel(self):
+        teamAlias, buzzerAlias, activeColor = self.__teamController.getActiveAlias()
         
-        self.builder.get_object("bigPictureBuzzedLabel").configure(text_color=color, text=f"{team} - {buzzer}")
+        self.builder.get_object("buzzerControlBuzzedAliasLabel").configure(text=f"{teamAlias} - {buzzerAlias}")
         
-    def clearBigPictureBuzzedLabel(self):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return
+        if not (self.bigPicture is None or not self.bigPicture.winfo_exists()):
+            self.builder.get_object("bigPictureBuzzedLabel").configure(text_color=activeColor, text=f"{teamAlias} - {buzzerAlias}")
         
-        self.builder.get_object("bigPictureBuzzedLabel").configure(text="")
+    def clearBuzzerAliasLabel(self):
+        self.builder.get_object("buzzerControlBuzzedAliasLabel").configure(text="")
+        
+        if not (self.bigPicture is None or not self.bigPicture.winfo_exists()):
+            self.builder.get_object("bigPictureBuzzedLabel").configure(text="")
 
 if __name__ == "__main__":
     app = BuzzerControlApp()
