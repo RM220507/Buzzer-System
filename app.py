@@ -5,7 +5,10 @@ import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
-from teamWidgets import TeamSetup
+from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard
+import customtkinter as ctk
+from os import path
+from tkinter import messagebox
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -13,9 +16,26 @@ PROJECT_UI = PROJECT_PATH / "mainUI.ui"
 mixer.init()
 
 class Sound:
-    INCORRECT = mixer.Sound("sounds/incorrect.mp3")
-    CORRECT = mixer.Sound("sounds/correct.mp3")
-    BUZZED = mixer.Sound("sounds/buzzer.mp3")
+    INCORRECT = mixer.Sound("assets/sounds/incorrect.mp3")
+    CORRECT = mixer.Sound("assets/sounds/correct.mp3")
+    BUZZED = mixer.Sound("assets/sounds/buzzer.mp3")
+    
+    VICTORY = mixer.Sound("assets/sounds/victory.mp3")
+    KLAXON = mixer.Sound("assets/sounds/klaxon.mp3")
+    TROMBONE = mixer.Sound("assets/sounds/trombone_sad.mp3")
+    AWFUL_JOKE = mixer.Sound("assets/sounds/ba_bum_tss.mp3")
+    DRUMROLL = mixer.Sound("assets/sounds/drumroll.mp3")
+    
+    NAME_ASSIGNMENT = {
+        "Buzzer" : BUZZED,
+        "Correct" : CORRECT,
+        "Incorrect" : INCORRECT,
+        "Victory" : VICTORY,
+        "Klaxon" : KLAXON,
+        "Trombone Sad" : TROMBONE,
+        "Ba Dum Crash" : AWFUL_JOKE,
+        "Drum Roll" : DRUMROLL
+    }
 
 class TeamController:
     def __init__(self, questionController):
@@ -26,21 +46,42 @@ class TeamController:
         self.__activeTeam = None
         self.__activeBuzzer = None
         
-    def applyActivePenalty(self):
+        self.__scoreboards = []
+        
+    def setScoreboards(self, *widgets):
+        self.__scoreboards = widgets
+        
+    @property
+    def teams(self):
+        return self.__teams
+        
+    def applyPenalty(self, teamID=None, amount=None):
+        if teamID is None: teamID = self.__activeTeam
+        if amount is None: amount = self.__questionController.currentQuestion[4]
         mixer.Sound.play(Sound.INCORRECT)
         
         for team in self.__teams:
-            if team.teamID == self.__activeTeam:
-                team.score -= self.__questionController.currentQuestion[4]
+            if team.teamID == teamID:
+                team.score -= amount
                 break
             
-    def applyActiveScore(self):
+        self.updateScoreboards()
+            
+    def applyScore(self, teamID=None, amount=None):
+        if teamID is None: teamID = self.__activeTeam
+        if amount is None: amount = self.__questionController.currentQuestion[3]
         mixer.Sound.play(Sound.CORRECT)
         
         for team in self.__teams:
-            if team.teamID == self.__activeTeam:
-                team.score += self.__questionController.currentQuestion[3]
+            if team.teamID == teamID:
+                team.score += amount
                 break
+            
+        self.updateScoreboards()
+        
+    def updateScoreboards(self):
+        for scoreboard in self.__scoreboards:
+            scoreboard.updateValues(self.__teams)
                 
     def setActive(self, team, buzzer):
         self.__activeTeam = team
@@ -77,6 +118,12 @@ class TeamController:
             self.__teams.append(newTeam)
             
         return command
+    
+    def getTeamStrings(self):
+        strings = []
+        for team in self.__teams:
+            strings.append(f"{team.teamID} - {team.alias}")
+        return strings
             
 class Team:
     def __init__(self, ID, alias, colorPalette, buzzers):
@@ -151,13 +198,14 @@ class QuestionManager:
         
         self.__questions = []
         self.__questionID = 0
-        self.__currentQuestion = []
+        self.__currentQuestion = ["No Set Loaded", "", "", 0, 0, None, 1]
         
         self.__setLoaded = False
         
     def getSets(self):
-        self.__cursor.execute("SELECT * FROM QuestionSet")
-        return self.__cursor.fetchall()
+        self.__cursor.execute("SELECT ID, Name FROM QuestionSet")
+        setList = self.__cursor.fetchall()
+        return [f"{entry[0]} - {entry[1]}" for entry in setList]
     
     def loadSet(self, ID):
         self.__setLoaded = True
@@ -187,7 +235,7 @@ class QuestionManager:
         return len(self.__rounds)
     
     def getQuestions(self):
-        self.__cursor.execute("SELECT Question, Answer, Notes, CorrectPoints, IncorrectPenalty FROM Question, QuestionRound WHERE Question.ID = QuestionRound.QuestionID AND QuestionRound.RoundID = ? ORDER BY Position", (self.__rounds[self.__roundID][0],))
+        self.__cursor.execute("SELECT Question, Answer, Notes, CorrectPoints, IncorrectPenalty, AidPath FROM Question, QuestionRound WHERE Question.ID = QuestionRound.QuestionID AND QuestionRound.RoundID = ? ORDER BY Position", (self.__rounds[self.__roundID][0],))
         self.__questions = self.__cursor.fetchall()
         self.__questionID = 0
         
@@ -198,24 +246,24 @@ class QuestionManager:
         
     def advanceQuestion(self):
         if not self.__setLoaded:
-            self.__currentQuestion =  ["No Set Loaded", "", "", 0, 0, 3]
+            self.__currentQuestion =  ["No Set Loaded", "", "", 0, 0, None, 1]
         else:
-            if self.__currentQuestion[5] == 0:
-                self.__currentQuestion[5] = 1
-            elif self.__currentQuestion[5] == 1:
+            if self.__currentQuestion[6] == 0:
+                self.__currentQuestion[6] = 1
+            elif self.__currentQuestion[6] == 1:
                 self.__questionID += 1
                 
                 if self.__questionID >= len(self.__questions):
                     self.__roundID += 1
                     if self.__roundID >= len(self.__rounds):
-                        self.__currentQuestion = ["Game End", "", "", 0, 0, 3]
+                        self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
                     else:
-                        self.__currentQuestion = ["Round Break", "", "", 0, 0, 2]
+                        self.__currentQuestion = ["Round Break", "", "", 0, 0, None, 2]
                 else:
                     self.__currentQuestion = self.__questions[self.__questionID]
-            elif self.__currentQuestion[5] == 2:
+            elif self.__currentQuestion[6] == 2:
                 self.getQuestions()
-            elif self.__currentQuestion[5] == 3:
+            elif self.__currentQuestion[6] == 3:
                 pass # END OF GAME <- DON'T INCREMENT        
         
         return self.__currentQuestion
@@ -224,6 +272,52 @@ class QuestionManager:
     def currentQuestion(self):
         return self.__currentQuestion
             
+class AidController:
+    def __init__(self, hostDisplayParent, bigPictureDisplay=None):
+        self.__hostAidDisplay = HostAidDisplay(hostDisplayParent, self.show, self.hide, self.play, self.pause, self.stop, self.seek)
+        self.__hostAidDisplay.grid(row=1, column=1, sticky="nsew", rowspan=3, padx=5, pady=5)
+        
+        self.__bigPictureDisplay = bigPictureDisplay
+        
+    def setBigPictureDisplay(self, frame):
+        self.__bigPictureDisplay = frame
+        
+    def unload(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.unload()
+        
+    def load(self, file):
+        if not path.isfile(file):
+            messagebox.showerror("File not Found", f"File {file} is missing")
+            return
+        
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.load(file)
+            
+    def hide(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.setPause(True)
+            self.__bigPictureDisplay.pack_forget()
+            
+    def show(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.pack(expand=True, fill="both", padx=10, pady=10)
+            
+    def play(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.play()
+            
+    def pause(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.setPause(True)
+            
+    def stop(self):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.stop()
+            
+    def seek(self, time):
+        if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
+            self.__bigPictureDisplay.seek(time)
 
 class SerialController(threading.Thread):
     def __init__(self, readCallback):
@@ -281,13 +375,13 @@ class BuzzerControlApp:
         builder.add_from_file(PROJECT_UI)
         
         self.mainwindow = builder.get_object("rootFrame", master)
+        
         self.bigPicture = None
+        self.selectTopLevel = None
         
         builder.connect_callbacks(self)
-        
-        #self.refreshQuestionSetDropdown()
+
         self.showBuzzerClosedFrame()
-        self.showBigPictureBlank()
         
         self.__serialController = SerialController(self.buzzCallback)
         
@@ -296,13 +390,22 @@ class BuzzerControlApp:
         
         self.__questionManager = QuestionManager(self.__db, self.__cursor)
         self.__teamController = TeamController(self.__questionManager)
+        self.__questionAidController = AidController(builder.get_object("currentQuestionFrame"))
         
         builder.get_object("currentQuestionLabel").configure(wraplength=800)
         builder.get_object("currentQuestionAnswerLabel").configure(wraplength=800)
         builder.get_object("currentQuestionNotesLabel").configure(wraplength=800)
         
-        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 12, self.setupTeams)
+        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 16, self.setupTeams, self.loadColorPalettePrompt, self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
+        
+        self.__scoreboardWidget = HostScoreboard(builder.get_object("scoreTab"), self.__teamController)
+        self.__scoreboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
+        
+        self.__teamController.setScoreboards(self.__scoreboardWidget)
+        
+        self.__soundboardWidget = Soundboard(builder.get_object("soundboardTab"), Sound)
+        self.__soundboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
     def run(self):
         self.__serialController.start()
@@ -310,15 +413,11 @@ class BuzzerControlApp:
         self.__serialController.writeLine("teamSetup 0 / 0 1 / 50 50 50 128 128 128 128 0 128 128 0 0; 1 / 2 / 50 50 50 128 128 128 128 0 128 128 0 0")
         
         self.mainwindow.mainloop()
-
-    def editQuestionSet(self):
-        pass
-
-    def newQuestionSet(self):
-        pass
-
-    def loadQuestionSet(self):
-        currentRound, setInfo = self.__questionManager.loadSet(1)
+    
+    def loadQuestionSet(self, value):
+        setID = int(value.split()[0])
+        
+        currentRound, setInfo = self.__questionManager.loadSet(setID)
         
         self.builder.get_object("questionSetLabel").configure(text=setInfo[0])
         
@@ -327,11 +426,106 @@ class BuzzerControlApp:
         
         self.buzzerClose()
 
-        self.showBigPictureTitle()
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.updateTitle(setInfo[0], "")
 
+    def loadQuestionSetPrompt(self):
+        setList = self.__questionManager.getSets()
+        
+        self.selectTopLevel = Selector(self.mainwindow, setList, self.loadQuestionSet)
+    
+    def loadColorPalette(self, value, teamElement):
+        paletteID = int(value.split()[0])
+        
+        self.__cursor.execute("SELECT InactiveColor, WaitingColor, ActiveColor, LockedColor FROM ColorPalette WHERE ID = ?", (paletteID,))
+        colorPalette = self.__cursor.fetchone()
+        
+        teamElement.loadPalette(colorPalette)    
+    
+    def loadColorPalettePrompt(self, teamElement):
+        self.__cursor.execute("SELECT ID, Name FROM ColorPalette")
+        paletteList = self.__cursor.fetchall()
+        paletteList = [f"{entry[0]} - {entry[1]}" for entry in paletteList]
+        
+        self.selectTopLevel = Selector(self.mainwindow, paletteList, self.loadColorPalette, (teamElement,))
+        
+    def saveColorPalette(self, teamElement):
+        inputDialog = ctk.CTkInputDialog(title="Colour Palette Name", text="Name your Colour Palette")
+        name = inputDialog.get_input()[:30] #type: ignore
+        
+        inactiveColor, waitingColor, activeColor, lockedColor = teamElement.getColors()
+        
+        self.__cursor.execute("SELECT 1 FROM ColorPalette WHERE Name = ?", (name,))
+        if self.__cursor.fetchone():
+            self.__cursor.execute("UPDATE ColorPalette SET InactiveColor = ?, WaitingColor = ?, ActiveColor = ?, LockedColor = ? WHERE Name = ?", (inactiveColor, waitingColor, activeColor, lockedColor, name))
+        else:
+            self.__cursor.execute("INSERT INTO ColorPalette (Name, InactiveColor, WaitingColor, ActiveColor, LockedColor) VALUES (?, ?, ?, ?, ?)", (name, inactiveColor, waitingColor, activeColor, lockedColor))
+        self.__db.commit() # type: ignore
+        
+    def loadTeamConfigurationPrompt(self):
+        self.__cursor.execute("SELECT ID, Name FROM Configuration")
+        configList = self.__cursor.fetchall()
+        configList = [f"{entry[0]} - {entry[1]}" for entry in configList]
+        
+        self.selectTopLevel = Selector(self.mainwindow, configList, self.loadTeamConfiguration)        
+        
+    def loadTeamConfiguration(self, value):
+        configID = int(value.split()[0])
+        
+        self.__cursor.execute("SELECT ID, Name FROM TeamConfig WHERE ConfigID = ?", (configID,))
+        teams = self.__cursor.fetchall()
+        
+        configData = []
+        for team in teams:
+            self.__cursor.execute("SELECT ID, Alias FROM BuzzerTeam WHERE TeamID = ?", (team[0],))
+            teamBuzzers = self.__cursor.fetchall()
+            
+            teamData = (team[1], None, teamBuzzers) # could be used for color palette later
+            configData.append(teamData)
+            
+        self.__teamSetupWidget.loadConfig(configData)        
+        
+    def saveTeamConfiguration(self, config):
+        inputDialog = ctk.CTkInputDialog(title="Configuration Name", text="Name your Configuration")
+        name = inputDialog.get_input()[:30] #type: ignore
+        
+        self.__cursor.execute("SELECT 1 FROM Configuration WHERE Name = ?", (name,))
+        if self.__cursor.fetchone():
+            self.__cursor.execute("SELECT ID FROM Configuration WHERE Name = ?", (name,))
+            configID = self.__cursor.fetchone()[0]
+            
+            self.__cursor.execute("SELECT ID FROM TeamConfig WHERE ConfigID = ?", (configID,))
+            teamIDs = self.__cursor.fetchall()
+            self.__cursor.execute("DELETE FROM TeamConfig WHERE ConfigID = ?", (configID,))
+            self.__cursor.executemany("DELETE FROM BuzzerTeam WHERE TeamID = ?", teamIDs)
+        else:
+            self.__cursor.execute("INSERT INTO Configuration (Name) VALUES (?)", (name,))
+            self.__cursor.execute("SELECT last_insert_rowid() FROM Configuration")
+            configID = self.__cursor.fetchone()[0]
+            
+        teams = config[0]
+        buzzers = config[1]
+        
+        teamIDs = []
+        for team in teams:
+            self.__cursor.execute("INSERT INTO TeamConfig (Name, ConfigID) VALUES (?, ?)", (team, configID))
+            self.__cursor.execute("SELECT last_insert_rowid() FROM TeamConfig")
+            teamIDs.append(self.__cursor.fetchone()[0])
+            
+        for buzzer in buzzers:
+            self.__cursor.execute("INSERT INTO BuzzerTeam VALUES (?, ?, ?)", (buzzer[0], teamIDs[buzzer[1]], buzzer[2]))
+            
+        self.__db.commit() # type: ignore
+        
     def setupTeams(self, teams):
         serialCommand = self.__teamController.setupTeams(teams)
+        teamData = self.__teamController.getTeamStrings()
+        self.builder.get_object("buzzerControlClosedTeamSelect").configure(values=teamData)
+        self.builder.get_object("buzzerControlClosedTeamSelect").set(teamData[0])
+        
         self.__serialController.writeLine(serialCommand)
+        
+        self.__scoreboardWidget.updateValues(self.__teamController.teams)
     
     def updateRoundLabel(self):
         currentRound = self.__questionManager.currentRound
@@ -340,8 +534,7 @@ class BuzzerControlApp:
         self.builder.get_object("roundDescriptor").configure(text=f"{currentRound[1]} - {currentRound[0]} of {numRounds}")
         
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.builder.get_object("bigPictureRoundCountLabel").configure(text=f"Round {currentRound[0]} of {numRounds}")
-            self.builder.get_object("bigPictureRoundNameLabel").configure(text=currentRound[1])
+            self.bigPicture.updateRound(currentRound[0], numRounds, currentRound[1])
 
     def nextQuestion(self):
         self.clearBuzzerAliasLabel()
@@ -351,12 +544,12 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
         self.updateQuestionLabels(questionData)
         
-        if questionData[5] == 0:
+        if questionData[6] == 0:
             self.showBigPictureQuestion()
-        elif questionData[5] == 1:
+        elif questionData[6] == 1:
             self.showBigPictureBlank()
             self.showBuzzerAdvanceFrame()
-        elif questionData[5] == 2:
+        elif questionData[6] == 2:
             self.showBigPictureRound()
             self.showBuzzerAdvanceFrame()
 
@@ -365,20 +558,44 @@ class BuzzerControlApp:
         self.builder.get_object("currentQuestionLabel").configure(text=questionData[0])
         self.builder.get_object("currentQuestionAnswerLabel").configure(text=questionData[1])
         self.builder.get_object("currentQuestionNotesLabel").configure(text=questionData[2])
+
+        if questionData[5]:
+            self.__questionAidController.load(questionData[5])
+        else:
+            self.__questionAidController.unload()
         
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.builder.get_object("bigPictureQuestionLabel").configure(text=questionData[0])
+            self.bigPicture.updateQuestion(questionData[0])
         
     def setBigPictureTitle(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
             return
         
-        self.builder.get_object("bigPictureTitleLabel").configure(text=self.builder.get_object("bigPictureConfTitleEntry").get())
-        self.builder.get_object("bigPictureSubtitleLabel").configure(text=self.builder.get_object("bigPictureConfSubtitleEntry").get())
+        self.bigPicture.updateTitle(self.builder.get_object("bigPictureConfTitleEntry").get(), self.builder.get_object("bigPictureConfSubtitleEntry").get())
 
     def toggleBigPictureFullscreen(self):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.bigPicture.attributes("-fullscreen", not self.bigPicture.attributes("-fullscreen"))
+            self.bigPicture.toggleFullscreen()
+            
+    def showBigPictureBlank(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.displayBlank()
+            
+    def showBigPictureQuestion(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.displayQuestion()
+            
+    def showBigPictureRound(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.displayRound()
+            
+    def showBigPictureTitle(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.displayTitle()
+            
+    def showBigPictureScoreboard(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.displayScoreboard()
             
     def skipQuestion(self):
         mixer.Sound.play(Sound.INCORRECT)
@@ -397,52 +614,21 @@ class BuzzerControlApp:
         
     def openBigPicture(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            self.bigPicture = self.builder.get_object("bigPictureDisplay", self.mainwindow)
+            self.bigPicture = BigPicture(self.mainwindow)
             
-            self.builder.get_object("bigPictureQuestionLabel").configure(wraplength=1500, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureRoundCountLabel").configure(wraplength=1500, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureRoundNameLabel").configure(wraplength=1500, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureTitleLabel").configure(wraplength=1500, text_color=Color.WHITE)
-            self.builder.get_object("bigPictureSubtitleLabel").configure(wraplength=1500, text_color=Color.WHITE)
+            self.__questionAidController.setBigPictureDisplay(self.bigPicture.aidDisplay)
+            
+            self.__teamController.setScoreboards(self.__scoreboardWidget, self.bigPicture.scoreboardFrame)
+            self.__teamController.updateScoreboards()
             
             self.updateRoundLabel()
             self.updateQuestionLabels(self.__questionManager.currentQuestion)
             
-            self.showBigPictureBlank()
+            self.setBigPictureTitle()
+            
+            self.bigPicture.displayBlank()
         else:
             self.bigPicture.focus()
-        
-    def showBigPictureTitle(self):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return
-        
-        self.builder.get_object("bigPictureRoundFrame").pack_forget()
-        self.builder.get_object("bigPictureQuestionFrame").pack_forget()
-        self.builder.get_object("bigPictureTitleFrame").pack(expand=True, fill="both")
-    
-    def showBigPictureBlank(self):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return
-        
-        self.builder.get_object("bigPictureRoundFrame").pack_forget()
-        self.builder.get_object("bigPictureTitleFrame").pack_forget()
-        self.builder.get_object("bigPictureQuestionFrame").pack_forget()
-        
-    def showBigPictureQuestion(self):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return
-        
-        self.builder.get_object("bigPictureQuestionFrame").pack(expand=True, fill="both")
-        self.builder.get_object("bigPictureRoundFrame").pack_forget()
-        self.builder.get_object("bigPictureTitleFrame").pack_forget()
-        
-    def showBigPictureRound(self):
-        if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            return
-        
-        self.builder.get_object("bigPictureQuestionFrame").pack_forget()
-        self.builder.get_object("bigPictureRoundFrame").pack(expand=True, fill="both")
-        self.builder.get_object("bigPictureTitleFrame").pack_forget()
         
     def showBuzzerOpenFrame(self):
         self.builder.get_object("buzzerControlWaitingFrame").pack(padx=10, pady=10, expand=True, fill="both")
@@ -469,7 +655,14 @@ class BuzzerControlApp:
         self.builder.get_object("buzzerControlAdvanceFrame").pack(padx=10, pady=10, expand=True, fill="both")
         
     def buzzerOpenTeam(self):
+        selectValue = self.builder.get_object("buzzerControlClosedTeamSelect").get()
+        if selectValue == "CTkOptionMenu":
+            return
+        
+        teamID = int(selectValue.split(" - ")[0])
+        self.__serialController.writeLine(f"open team {teamID}")
         self.showBuzzerOpenFrame()
+        
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
 
@@ -478,7 +671,7 @@ class BuzzerControlApp:
         self.showBuzzerOpenFrame()
         
         self.clearBuzzerAliasLabel()
-        self.__teamController.applyActivePenalty()
+        self.__teamController.applyPenalty()
         self.__teamController.clearActive()
 
     def buzzerOpenLockTeam(self):
@@ -486,7 +679,7 @@ class BuzzerControlApp:
         self.showBuzzerOpenFrame()
         
         self.clearBuzzerAliasLabel()
-        self.__teamController.applyActivePenalty()
+        self.__teamController.applyPenalty()
         self.__teamController.clearActive()
 
     def resetBuzzers(self):
@@ -496,14 +689,15 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
         
     def answeredCorrectly(self):
-        self.__teamController.applyActiveScore()
+        self.__teamController.applyScore()
         self.nextQuestion()
     
     def answeredIncorrect(self):
-        self.__teamController.applyActivePenalty()
+        self.__teamController.applyPenalty()
         self.nextQuestion()
     
     def buzzCallback(self, data):
+        print(data)
         data = data.split()
         if len(data) >= 3 and data[0] == "buzzed":
             teamID = int(data[1])
@@ -518,15 +712,27 @@ class BuzzerControlApp:
         
         self.builder.get_object("buzzerControlBuzzedAliasLabel").configure(text=f"{teamAlias} - {buzzerAlias}")
         
-        if not (self.bigPicture is None or not self.bigPicture.winfo_exists()):
-            self.builder.get_object("bigPictureBuzzedLabel").configure(text_color=activeColor, text=f"{teamAlias} - {buzzerAlias}")
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.updateBuzzerAlias(f"{teamAlias} - {buzzerAlias}", activeColor)
         
     def clearBuzzerAliasLabel(self):
         self.builder.get_object("buzzerControlBuzzedAliasLabel").configure(text="")
         
-        if not (self.bigPicture is None or not self.bigPicture.winfo_exists()):
-            self.builder.get_object("bigPictureBuzzedLabel").configure(text="")
-
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.updateBuzzerAlias("")
+            
+    def buzzerFuncResend(self):
+        self.__serialController.writeLine("resendTeams")
+        
+    def buzzerFuncLightOn(self):
+        self.__serialController.writeLine("light set 1")
+        
+    def buzzerFuncLightOff(self):
+        self.__serialController.writeLine("light set 0")
+        
+    def buzzerFuncLightUpdate(self):
+        self.__serialController.writeLine("light update")
+            
 if __name__ == "__main__":
     app = BuzzerControlApp()
     app.run()

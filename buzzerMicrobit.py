@@ -160,7 +160,7 @@ class Buzzer:
                 if ID < 16:
                     ID += 1
             display.show(ID, wait=False)
-        display.scroll("active")
+        display.scroll("Active")
 
         return ID
     

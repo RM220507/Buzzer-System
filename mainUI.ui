@@ -4,7 +4,7 @@
     <property name="appearance_mode">light</property>
     <property name="color_theme">blue</property>
     <property name="height">760</property>
-    <property name="minsize">0|0</property>
+    <property name="minsize">600|600</property>
     <property name="title" translatable="yes">Buzzer System</property>
     <property name="width">1100</property>
     <child>
@@ -58,28 +58,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="customtkinter.CTkButton" id="newQuestionSetButton" named="True">
-                    <property name="command" type="command" cbtype="simple">newQuestionSet</property>
-                    <property name="text" translatable="yes">New Set</property>
-                    <layout manager="grid">
-                      <property name="column">2</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="sticky">e</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
                   <object class="customtkinter.CTkButton" id="loadQuestionSetButton" named="True">
-                    <property name="command" type="command" cbtype="simple">loadQuestionSet</property>
+                    <property name="command" type="command" cbtype="simple">loadQuestionSetPrompt</property>
                     <property name="text" translatable="yes">Load Set</property>
                     <layout manager="grid">
                       <property name="column">2</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
-                      <property name="row">1</property>
-                      <property name="sticky">e</property>
+                      <property name="row">0</property>
+                      <property name="rowspan">2</property>
+                      <property name="sticky">nsew</property>
                     </layout>
                   </object>
                 </child>
@@ -100,7 +88,7 @@
                 <child>
                   <object class="customtkinter.CTkLabel" id="questionPointsLabel" named="True">
                     <property name="font">{Bahnschrift SemiBold} 16 {}</property>
-                    <property name="text" translatable="yes">Points: 0</property>
+                    <property name="text" translatable="yes"> </property>
                     <layout manager="grid">
                       <property name="column">1</property>
                       <property name="padx">5</property>
@@ -114,12 +102,13 @@
                   <object class="customtkinter.CTkLabel" id="currentQuestionLabel" named="True">
                     <property name="font">{Bahnschrift SemiBold} 36 {}</property>
                     <property name="justify">left</property>
-                    <property name="text" translatable="yes">Current Question</property>
+                    <property name="text" translatable="yes">No Question Available</property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
-                      <property name="row">1</property>
+                      <property name="row">0</property>
+                      <property name="rowspan">2</property>
                       <property name="sticky">w</property>
                     </layout>
                   </object>
@@ -127,7 +116,7 @@
                 <child>
                   <object class="customtkinter.CTkLabel" id="currentQuestionAnswerLabel" named="True">
                     <property name="font">{Bahnschrift SemiBold} 20 {}</property>
-                    <property name="text" translatable="yes">Current Answer</property>
+                    <property name="text" translatable="yes"> </property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
@@ -139,27 +128,13 @@
                 </child>
                 <child>
                   <object class="customtkinter.CTkLabel" id="currentQuestionNotesLabel" named="True">
-                    <property name="font">{Bahnschrift SemiBold} 20 {}</property>
-                    <property name="text" translatable="yes">Current Notes</property>
+                    <property name="text" translatable="yes">Load a Question Set to get started</property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="row">3</property>
                       <property name="sticky">w</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkLabel" id="currentQuestionAid" named="True">
-                    <property name="text" translatable="yes">Question Aid!!</property>
-                    <layout manager="grid">
-                      <property name="column">1</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">1</property>
-                      <property name="rowspan">3</property>
-                      <property name="sticky">nsew</property>
                     </layout>
                   </object>
                 </child>
@@ -284,7 +259,7 @@
                           <property name="column">0</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="row">0</property>
+                          <property name="row">1</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
@@ -297,7 +272,7 @@
                           <property name="column">1</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="row">0</property>
+                          <property name="row">1</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
@@ -310,7 +285,7 @@
                           <property name="column">1</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="row">1</property>
+                          <property name="row">2</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
@@ -349,7 +324,7 @@
                           <property name="column">0</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="row">1</property>
+                          <property name="row">2</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
@@ -373,10 +348,10 @@
                         <property name="text" translatable="yes">Buzzed Alias</property>
                         <layout manager="grid">
                           <property name="column">0</property>
+                          <property name="columnspan">2</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="row">2</property>
-                          <property name="columnspan">2</property>
+                          <property name="row">0</property>
                         </layout>
                       </object>
                     </child>
@@ -503,6 +478,18 @@
                   </object>
                 </child>
                 <child>
+                  <object class="customtkinter.CTkButton" id="bigPictureSetScoreboardButton" named="True">
+                    <property name="command" type="command" cbtype="simple">showBigPictureScoreboard</property>
+                    <property name="text" translatable="yes">Display Scoreboard</property>
+                    <layout manager="pack">
+                      <property name="fill">x</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
                   <object class="customtkinter.CTkButton" id="bigPictureSetBlankButton" named="True">
                     <property name="command" type="command" cbtype="simple">showBigPictureBlank</property>
                     <property name="text" translatable="yes">Display Blank</property>
@@ -529,6 +516,7 @@
                     <property name="command" type="command" cbtype="simple">openBigPicture</property>
                     <property name="text" translatable="yes">Open Big Picture</property>
                     <layout manager="pack">
+                      <property name="fill">x</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="side">top</property>
@@ -540,6 +528,7 @@
                     <property name="command" type="command" cbtype="simple">toggleBigPictureFullscreen</property>
                     <property name="text" translatable="yes">Toggle Fullscreen</property>
                     <layout manager="pack">
+                      <property name="fill">x</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="side">top</property>
@@ -555,123 +544,87 @@
             <property name="label" translatable="yes">Teams</property>
           </object>
         </child>
-      </object>
-    </child>
-  </object>
-  <object class="customtkinter.CTkToplevel" id="bigPictureDisplay" named="True">
-    <property name="fg_color">#000</property>
-    <property name="title" translatable="yes">Buzzer System Big Picture Display</property>
-    <child>
-      <object class="customtkinter.CTkFrame" id="bigPictureQuestionFrame" named="True">
-        <property name="bg_color">#000</property>
-        <property name="corner_radius">0</property>
-        <property name="fg_color">#000</property>
-        <layout manager="pack">
-          <property name="expand">true</property>
-          <property name="fill">both</property>
-          <property name="side">top</property>
-        </layout>
         <child>
-          <object class="customtkinter.CTkLabel" id="bigPictureQuestionLabel" named="True">
-            <property name="font">{Bahnschrift SemiBold} 72 {}</property>
-            <property name="text" translatable="yes">Question Goes Here!</property>
-            <layout manager="pack">
-              <property name="expand">true</property>
-              <property name="side">top</property>
-            </layout>
+          <object class="customtkinter.CTkTabview.Tab" id="scoreTab" named="True">
+            <property name="label" translatable="yes">Scoreboard</property>
           </object>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="customtkinter.CTkFrame" id="bigPictureRoundFrame" named="True">
-        <property name="bg_color">#000</property>
-        <property name="fg_color">#000</property>
-        <layout manager="pack">
-          <property name="expand">true</property>
-          <property name="fill">both</property>
-          <property name="side">top</property>
-        </layout>
         <child>
-          <object class="customtkinter.CTkFrame" id="bigPictureRoundContainerFrame" named="True">
-            <property name="bg_color">#000</property>
-            <property name="fg_color">#000</property>
-            <layout manager="pack">
-              <property name="expand">true</property>
-              <property name="side">top</property>
-            </layout>
-            <child>
-              <object class="customtkinter.CTkLabel" id="bigPictureRoundCountLabel" named="True">
-                <property name="font">{Bahnschrift SemiBold} 36 {}</property>
-                <property name="text" translatable="yes">0 of 0</property>
-                <layout manager="pack">
-                  <property name="side">top</property>
-                </layout>
-              </object>
-            </child>
-            <child>
-              <object class="customtkinter.CTkLabel" id="bigPictureRoundNameLabel" named="True">
-                <property name="font">{Bahnschrift SemiBold} 72 {}</property>
-                <property name="text" translatable="yes">Round Here</property>
-                <layout manager="pack">
-                  <property name="expand">false</property>
-                  <property name="side">top</property>
-                </layout>
-              </object>
-            </child>
+          <object class="customtkinter.CTkTabview.Tab" id="soundboardTab" named="True">
+            <property name="label" translatable="yes">Soundboard</property>
           </object>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="customtkinter.CTkFrame" id="bigPictureTitleFrame" named="True">
-        <property name="bg_color">#000</property>
-        <property name="fg_color">#000</property>
-        <layout manager="pack">
-          <property name="side">top</property>
-        </layout>
         <child>
-          <object class="customtkinter.CTkFrame" id="bigPictureTitleContainterFrame" named="True">
-            <property name="bg_color">#000</property>
-            <property name="fg_color">#000</property>
-            <layout manager="pack">
-              <property name="expand">true</property>
-              <property name="side">top</property>
-            </layout>
+          <object class="customtkinter.CTkTabview.Tab" id="buzzerFuncTab" named="True">
+            <property name="label" translatable="yes">Buzzer Functions</property>
             <child>
-              <object class="customtkinter.CTkLabel" id="bigPictureTitleLabel" named="True">
-                <property name="font">{Bahnschrift SemiBold} 72 {}</property>
-                <property name="text" translatable="yes"> </property>
+              <object class="customtkinter.CTkButton" id="buzzerFuncResendButton" named="True">
+                <property name="command" type="command" cbtype="simple">buzzerFuncResend</property>
+                <property name="text" translatable="yes">Resend Configuration to Device</property>
                 <layout manager="pack">
-                  <property name="expand">true</property>
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
                   <property name="side">top</property>
                 </layout>
               </object>
             </child>
             <child>
-              <object class="customtkinter.CTkLabel" id="bigPictureSubtitleLabel" named="True">
-                <property name="font">{Bahnschrift SemiBold} 36 {}</property>
-                <property name="text" translatable="yes"> </property>
+              <object class="customtkinter.CTkFrame" id="buzzerFuncLightFrame" named="True">
                 <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
                   <property name="side">top</property>
                 </layout>
+                <containerlayout manager="grid">
+                  <property type="col" id="0" name="weight">1</property>
+                  <property type="col" id="1" name="weight">1</property>
+                </containerlayout>
+                <child>
+                  <object class="customtkinter.CTkButton" id="buzzerFuncLightOnButton" named="True">
+                    <property name="command" type="command" cbtype="simple">buzzerFuncLightOn</property>
+                    <property name="text" translatable="yes">Lights On</property>
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">ew</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkButton" id="buzzerFuncLightOffButton" named="True">
+                    <property name="command" type="command" cbtype="simple">buzzerFuncLightOff</property>
+                    <property name="text" translatable="yes">Lights Off</property>
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">1</property>
+                      <property name="sticky">ew</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkButton" id="buzzerFuncLightUpdateButton" named="True">
+                    <property name="command" type="command" cbtype="simple">buzzerFuncLightUpdate</property>
+                    <property name="text" translatable="yes">Update Lights</property>
+                    <layout manager="grid">
+                      <property name="column">1</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="rowspan">2</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="customtkinter.CTkLabel" id="bigPictureBuzzedLabel" named="True">
-        <property name="bg_color">#000</property>
-        <property name="fg_color">#000</property>
-        <property name="font">{Bahnschrift SemiBold} 100 {}</property>
-        <property name="text" translatable="yes"> </property>
-        <layout manager="pack">
-          <property name="padx">5</property>
-          <property name="pady">15</property>
-          <property name="side">bottom</property>
-        </layout>
       </object>
     </child>
   </object>
