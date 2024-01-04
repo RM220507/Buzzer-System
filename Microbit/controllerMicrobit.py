@@ -1,23 +1,26 @@
 from microbit import uart, display #type: ignore
 import radio #type: ignore
-from micropython import const
 
 # APPLY MINIFIER (https://python-minifier.com/)
 
+""" 
 class CommandID:
-    OPEN = const(10)
-    CLOSE = const(15)
-    RESET_LOCK = const(20)
-    OPEN_LOCK_TEAM = const(25)
-    OPEN_LOCK_IND = const(30)
-    OPEN_TEAM = const(35)
-    LIGHT_TOGGLE = const(40)
-    LIGHT_UPDATE = const(45)
-    BUZZED = const(50)
-    IGNORE_BUZZ = const(55)
-    TEAM_ASSIGNMENT = const(60)
-    COLOR_PROFILE_ASSIGNMENT = const(65)
-    LIGHT_SET = const(70)
+    OPEN = 10
+    CLOSE = 15
+    RESET_LOCK = 20
+    OPEN_LOCK_TEAM = 25
+    OPEN_LOCK_IND = 30
+    OPEN_TEAM = 35
+    LIGHT_TOGGLE = 40
+    LIGHT_UPDATE = 45
+    BUZZED = 50
+    IGNORE_BUZZ = 55
+    TEAM_ASSIGNMENT = 60
+    COLOR_PROFILE_ASSIGNMENT = 65
+    LIGHT_SET = 70
+    IDENTIFY = 75 
+    NOT_NEEDED = 80
+"""
 
 class BuzzerController:
     def __init__(self):
@@ -46,7 +49,7 @@ class BuzzerController:
         while True:
             radioData = radio.receive_bytes()
             if radioData:
-                if int(radioData[0]) == CommandID.BUZZED:
+                if int(radioData[0]) == 50:
                     if self.__waitingForBuzz:
                         self.__waitingForBuzz = False
                         self.__activeBuzzer = radioData[1]
@@ -76,46 +79,52 @@ class BuzzerController:
         elif command[0] == "open":
             self.handleOpenCommand(command)
         elif command[0] == "reset":
-            self.sendMsg([CommandID.RESET_LOCK])
+            self.sendMsg([20])
             self.__waitingForBuzz = False
         elif command[0] == "close":
-            self.sendMsg([CommandID.CLOSE])
+            self.sendMsg([15])
             self.__waitingForBuzz = False
         elif command[0] == "teamSetup":
+            print(command)
             teamArray = self.parseTeamInput(command)
             self.__teams = teamArray
             self.setupTeams()
             self.__waitingForBuzz = False
         elif command[0] == "resendTeams":
             self.setupTeams()
+        elif command[0] == "identify":
+            if command[1] == "none" or not command[1].isdigit():
+                self.sendMsg([15])
+            else:
+                self.sendMsg([75, int(command[1])])
 
     def handleLightCommand(self, command):
         if command[1] == "toggle":
             self.__displayLight = not self.__displayLight
-            self.sendMsg([CommandID.LIGHT_SET, int(self.__displayLight)])
+            self.sendMsg([70, int(self.__displayLight)])
         elif command[1] == "set":
             self.__displayLight = bool(int(command[2]))
-            self.sendMsg([CommandID.LIGHT_SET, int(self.__displayLight)])
+            self.sendMsg([70, int(self.__displayLight)])
         elif command[1] == "update":
-            self.sendMsg([CommandID.LIGHT_UPDATE])
+            self.sendMsg([45])
 
     def handleOpenCommand(self, command):
         if command[1] == "all":
-            self.sendMsg([CommandID.OPEN])
+            self.sendMsg([10])
             self.__waitingForBuzz = True
         elif command[1] == "lockTeam":
             if command[2] == "active":
-                self.sendMsg([CommandID.OPEN_LOCK_TEAM, self.__activeTeam])
+                self.sendMsg([25, self.__activeTeam])
                 self.__waitingForBuzz = True
             elif command[2].isdigit() and 0 <= int(command[2]) < self.teamCount():
-                self.sendMsg([CommandID.OPEN_LOCK_TEAM, int(command[2])])
+                self.sendMsg([25, int(command[2])])
                 self.__waitingForBuzz = True
         elif command[1] == "team":
             if command[2].isdigit() and 0 <= int(command[2]) < self.teamCount():
-                self.sendMsg([CommandID.OPEN_TEAM, int(command[2])])
+                self.sendMsg([35, int(command[2])])
                 self.__waitingForBuzz = True
         elif command[1] == "lockInd":
-            self.sendMsg([CommandID.OPEN_LOCK_IND])
+            self.sendMsg([30])
             self.__waitingForBuzz = True
                 
     def parseTeamInput(self, command):
@@ -136,13 +145,20 @@ class BuzzerController:
         return teamArray
 
     def setupTeams(self):
+        availableBuzzers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         for team in self.__teams:
             for buzzerID in team[1]:
-                self.sendMsg([CommandID.TEAM_ASSIGNMENT, buzzerID, team[0]])
-
-            colorProfileArray = [CommandID.COLOR_PROFILE_ASSIGNMENT, team[0]]
+                self.sendMsg([60, buzzerID, team[0]])
+                if buzzerID in availableBuzzers: availableBuzzers.remove(buzzerID)
+                
+            colorProfileArray = [65, team[0]]
             colorProfileArray.extend(team[2])
             self.sendMsg(colorProfileArray)
+            
+        for buzzerID in availableBuzzers:
+            self.sendMsg([80, buzzerID])
+            
+        self.sendMsg([70, 1])
 
     def teamCount(self):
         return len(self.__teams)

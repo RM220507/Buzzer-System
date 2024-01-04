@@ -192,7 +192,9 @@ class BigPictureAidDisplay(ctk.CTkFrame):
         self.canvas.pack(fill="both")
 
         # Creating VLC player
-        self.instance = vlc.Instance()
+        #vlcPath = ""
+        #self.instance = vlc.Instance(f"--vlc-path={vlcPath}")
+        self.instance = vlc.Instance() #! THIS NEEDS TO BE CHANGED
         self.player = self.instance.media_player_new() # pyright: ignore[reportOptionalMemberAccess]
 
     def GetHandle(self):
@@ -356,7 +358,7 @@ class Selector(ctk.CTkToplevel):
         return self.__options.get()
 
 class TeamSetup(ctk.CTkScrollableFrame):
-    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, **kwargs):
+    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, buzzerIdentifyCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.rowconfigure(0, weight=1)
@@ -378,13 +380,14 @@ class TeamSetup(ctk.CTkScrollableFrame):
         ctk.CTkButton(self.__buttonFrame, text="Send Configuration to Device", command=self.setConfiguration).grid(row=0, column=0, padx=5, pady=5, columnspan=2, sticky="EW")
         ctk.CTkButton(self.__buttonFrame, text="Save to Database", command=lambda: saveConfigCallback(self.getConfig())).grid(row=1, column=0, padx=5, pady=5, sticky="EW")
         ctk.CTkButton(self.__buttonFrame, text="Load from Database", command=loadConfigCallback).grid(row=1, column=1, padx=5, pady=5, sticky="EW")        
+        ctk.CTkButton(self.__buttonFrame, text="Stop Identify", command=lambda: buzzerIdentifyCallback(255)).grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="EW")        
         
         self.__buzzerFrame = ctk.CTkFrame(self)
         self.__buzzerFrame.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
         
         self.__buzzerElements = []
         for i in range(self.__numBuzzers):
-            newElement = BuzzerElement(self.__buzzerFrame, i)
+            newElement = BuzzerElement(self.__buzzerFrame, i, buzzerIdentifyCallback)
             newElement.grid(row=i//4, column=i%4, padx=5, pady=5)
             newElement.clearTeam()
             self.__buzzerElements.append(newElement)
@@ -477,8 +480,6 @@ class TeamSetup(ctk.CTkScrollableFrame):
             self.newTeam(team[0], team[1])
             for buzzer in team[2]:
                 self.__buzzerElements[buzzer[0]].setInfo(buzzer[1], True, team[0])
-                
-        self.setConfiguration()
         
 class TeamElement(ctk.CTkFrame):
     def __init__(self, master, loadColorCallback, saveColorCallback, **kwargs):
@@ -523,7 +524,7 @@ class TeamElement(ctk.CTkFrame):
             self.__inactiveButton.configure(fg_color=definedColor)
         else:
             color = askcolor(title="Inactive Colour Chooser")
-            if color:
+            if len(color) != 0:
                 self.__inactiveButton.configure(fg_color=color[1])
             
     def setWaitingColor(self, definedColor=None):
@@ -531,7 +532,7 @@ class TeamElement(ctk.CTkFrame):
             self.__waitingButton.configure(fg_color=definedColor)
         else:
             color = askcolor(title="Waiting Colour Chooser")
-            if color:
+            if len(color) != 0:
                 self.__waitingButton.configure(fg_color=color[1])
             
     def setActiveColor(self, definedColor=None):
@@ -539,7 +540,7 @@ class TeamElement(ctk.CTkFrame):
             self.__activeButton.configure(fg_color=definedColor)
         else:
             color = askcolor(title="Active Colour Chooser")
-            if color:
+            if len(color) != 0:
                 self.__activeButton.configure(fg_color=color[1])
             
     def setLockedColor(self, definedColor=None):
@@ -547,7 +548,7 @@ class TeamElement(ctk.CTkFrame):
             self.__lockedButton.configure(fg_color=definedColor)
         else:
             color = askcolor(title="Locked Colour Chooser")
-            if color:
+            if len(color) != 0:
                 self.__lockedButton.configure(fg_color=color[1])
             
     def getColors(self):
@@ -557,7 +558,7 @@ class TeamElement(ctk.CTkFrame):
                 self.__lockedButton.cget("fg_color"))
         
 class BuzzerElement(ctk.CTkFrame):
-    def __init__(self, master, index, **kwargs): 
+    def __init__(self, master, index, identifyCallback, **kwargs): 
         super().__init__(master, **kwargs)
         self.configure(fg_color="#ECECEC")
         
@@ -570,11 +571,13 @@ class BuzzerElement(ctk.CTkFrame):
         self.__activeCheckbox.grid(row=0, column=1, padx=5, pady=5)
         
         self.__aliasEntry = ctk.CTkEntry(self, placeholder_text="Alias")
-        self.__aliasEntry.grid(row=1, column=0, padx=5, pady=5, columnspan=2)
+        self.__aliasEntry.grid(row=1, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         
         self.__teamDropdown = ctk.CTkOptionMenu(self, values=[])
-        self.__teamDropdown.grid(row=2, column=0, padx=5, pady=5, columnspan=2)
+        self.__teamDropdown.grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         self.__teamDropdown.set("Select Team")
+        
+        ctk.CTkButton(self, text="Identify", command=lambda: identifyCallback(self.__index)).grid(row=3, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         
     def clearTeam(self):
         self.__teamDropdown.set("")

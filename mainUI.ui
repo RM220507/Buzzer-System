@@ -18,7 +18,7 @@
         </layout>
         <child>
           <object class="customtkinter.CTkTabview.Tab" id="questionTab" named="True">
-            <property name="label" translatable="yes">Question</property>
+            <property name="label" translatable="yes">Hosting</property>
             <child>
               <object class="customtkinter.CTkFrame" id="questionSetInfoFrame" named="True">
                 <layout manager="pack">

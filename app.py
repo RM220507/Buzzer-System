@@ -15,6 +15,23 @@ PROJECT_UI = PROJECT_PATH / "mainUI.ui"
 
 mixer.init()
 
+class CommandID:
+    OPEN = 10
+    CLOSE = 15
+    RESET_LOCK = 20
+    OPEN_LOCK_TEAM = 25
+    OPEN_LOCK_IND = 30
+    OPEN_TEAM = 35
+    LIGHT_TOGGLE = 40
+    LIGHT_UPDATE = 45
+    BUZZED = 50
+    IGNORE_BUZZ = 55
+    TEAM_ASSIGNMENT = 60
+    COLOR_PROFILE_ASSIGNMENT = 65
+    LIGHT_SET = 70
+    IDENTIFY = 75 
+    NOT_NEEDED = 80
+
 class Sound:
     INCORRECT = mixer.Sound("assets/sounds/incorrect.mp3")
     CORRECT = mixer.Sound("assets/sounds/correct.mp3")
@@ -98,32 +115,51 @@ class TeamController:
         for team in self.__teams:
             if team.teamID == self.__activeTeam:
                 teamAlias = team.alias
-                buzzerAlias = team.getBuzzerAlias(self.__activeBuzzer)
+                buzzerAlias = team.getBuzzer(self.__activeBuzzer).alias
                 activeColor = team.activeColor
                 break
 
         return teamAlias, buzzerAlias, activeColor
+    
+    def getActivePinIndex(self):
+        for team in self.__teams:
+            if team.teamID == self.__activeTeam:
+                return team.getBuzzer(self.__activeBuzzer).pinIndex
         
     def setupTeams(self, teams):
         self.__teams = []
-        command = "teamSetup "
+        commands = []
         
         for i, team in enumerate(teams):
             newTeam = Team(i, team[0], team[1], team[2])
-            command += newTeam.generateCommand()
-            
-            if i < len(teams) - 1:
-                command += "; "
-            
+            commands.extend(newTeam.generateCommands())
+
             self.__teams.append(newTeam)
             
-        return command
+        return commands
+    
+    def getCommands(self):
+        commands = []
+        for team in self.__teams:
+            commands.extend(team.generateCommands())
+        return commands
     
     def getTeamStrings(self):
         strings = []
         for team in self.__teams:
             strings.append(f"{team.teamID} - {team.alias}")
         return strings
+    
+    def fromPinIndex(self, pinIndex):
+        for team in self.__teams:
+            buzzerID = team.fromPinIndex(pinIndex)
+            if buzzerID is not None:
+                return team.teamID, buzzerID
+        return 0, 0
+    
+    @property
+    def activeTeam(self):
+        return self.__activeTeam
             
 class Team:
     def __init__(self, ID, alias, colorPalette, buzzers):
@@ -152,23 +188,28 @@ class Team:
     def activeColor(self):
         return self.__activeTextCol
             
-    def generateCommand(self):
-        command = f"{self.__ID} / "
+    def generateCommands(self):
+        commands = []
         for buzzer in self.__buzzers:
-            command += f"{buzzer.pinIndex} "
+            commands.append(f"{CommandID.TEAM_ASSIGNMENT} {buzzer.pinIndex} {self.__ID}")
             
-        command += "/ "
-        
+        colorCommand = f"{CommandID.COLOR_PROFILE_ASSIGNMENT} {self.__ID} "
         for color in self.__colorPalette:
             for val in color:
-                command += f"{val} "
+                colorCommand += f"{val} "
+        commands.append(colorCommand)
                 
-        return command
+        return commands
     
-    def getBuzzerAlias(self, buzzerID):
+    def getBuzzer(self, buzzerID):
         for buzzer in self.__buzzers:
             if buzzer.ID == buzzerID:
-                return buzzer.alias
+                return buzzer
+            
+    def fromPinIndex(self, pinIndex):
+        for buzzer in self.__buzzers:
+            if buzzer.pinIndex == pinIndex:
+                return buzzer.ID
     
 class Buzzer:
     def __init__(self, ID, pinIndex, alias):
@@ -396,7 +437,7 @@ class BuzzerControlApp:
         builder.get_object("currentQuestionAnswerLabel").configure(wraplength=800)
         builder.get_object("currentQuestionNotesLabel").configure(wraplength=800)
         
-        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 16, self.setupTeams, self.loadColorPalettePrompt, self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt)
+        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 25, self.setupTeams, self.loadColorPalettePrompt, self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
         
         self.__scoreboardWidget = HostScoreboard(builder.get_object("scoreTab"), self.__teamController)
@@ -410,7 +451,7 @@ class BuzzerControlApp:
     def run(self):
         self.__serialController.start()
         
-        self.__serialController.writeLine("teamSetup 0 / 0 1 / 50 50 50 128 128 128 128 0 128 128 0 0; 1 / 2 / 50 50 50 128 128 128 128 0 128 128 0 0")
+        #self.__serialController.writeLine("WHY?")
         
         self.mainwindow.mainloop()
     
@@ -518,12 +559,12 @@ class BuzzerControlApp:
         self.__db.commit() # type: ignore
         
     def setupTeams(self, teams):
-        serialCommand = self.__teamController.setupTeams(teams)
+        commands = self.__teamController.setupTeams(teams)
         teamData = self.__teamController.getTeamStrings()
         self.builder.get_object("buzzerControlClosedTeamSelect").configure(values=teamData)
         self.builder.get_object("buzzerControlClosedTeamSelect").set(teamData[0])
         
-        self.__serialController.writeLine(serialCommand)
+        self.__serialController.writeLine(";".join(commands))
         
         self.__scoreboardWidget.updateValues(self.__teamController.teams)
     
@@ -602,12 +643,12 @@ class BuzzerControlApp:
         self.nextQuestion()
 
     def buzzerClose(self):
-        self.__serialController.writeLine("close")
+        self.__serialController.writeLine(f"{CommandID.CLOSE}")
         self.showBuzzerClosedFrame()
         self.__teamController.clearActive()
 
     def buzzerOpenAll(self):
-        self.__serialController.writeLine("open all")
+        self.__serialController.writeLine(f"{CommandID.OPEN}")
         self.showBuzzerOpenFrame()
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
@@ -660,14 +701,14 @@ class BuzzerControlApp:
             return
         
         teamID = int(selectValue.split(" - ")[0])
-        self.__serialController.writeLine(f"open team {teamID}")
+        self.__serialController.writeLine(f"{CommandID.OPEN_TEAM} {teamID}")
         self.showBuzzerOpenFrame()
         
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
 
     def buzzerOpenLockInd(self):
-        self.__serialController.writeLine("open lockInd active")
+        self.__serialController.writeLine(f"{CommandID.OPEN_LOCK_IND} {self.__teamController.getActivePinIndex()}")
         self.showBuzzerOpenFrame()
         
         self.clearBuzzerAliasLabel()
@@ -675,7 +716,7 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
 
     def buzzerOpenLockTeam(self):
-        self.__serialController.writeLine("open lockTeam active")
+        self.__serialController.writeLine(f"{CommandID.OPEN_LOCK_TEAM} {self.__teamController.activeTeam}")
         self.showBuzzerOpenFrame()
         
         self.clearBuzzerAliasLabel()
@@ -683,7 +724,7 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
 
     def resetBuzzers(self):
-        self.__serialController.writeLine("reset")
+        self.__serialController.writeLine(f"{CommandID.RESET_LOCK}")
         self.showBuzzerClosedFrame()
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
@@ -699,9 +740,8 @@ class BuzzerControlApp:
     def buzzCallback(self, data):
         print(data)
         data = data.split()
-        if len(data) >= 3 and data[0] == "buzzed":
-            teamID = int(data[1])
-            buzzerID = int(data[2])
+        if len(data) >= 2 and data[0] == "buzzed":
+            teamID, buzzerID = self.__teamController.fromPinIndex(int(data[1]))
             self.__teamController.setActive(teamID, buzzerID)
             self.updateBuzzerAliasLabel()
             self.showBuzzerBuzzedFrame()
@@ -721,17 +761,21 @@ class BuzzerControlApp:
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
             self.bigPicture.updateBuzzerAlias("")
             
+    def buzzerIdentify(self, buzzerID):
+        self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
+            
     def buzzerFuncResend(self):
-        self.__serialController.writeLine("resendTeams")
+        commands = self.__teamController.getCommands()
+        self.__serialController.writeLine(";".join(commands))
         
     def buzzerFuncLightOn(self):
-        self.__serialController.writeLine("light set 1")
+        self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 1")
         
     def buzzerFuncLightOff(self):
-        self.__serialController.writeLine("light set 0")
+        self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 0")
         
     def buzzerFuncLightUpdate(self):
-        self.__serialController.writeLine("light update")
+        self.__serialController.writeLine(f"{CommandID.LIGHT_UPDATE}")
             
 if __name__ == "__main__":
     app = BuzzerControlApp()

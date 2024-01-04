@@ -2,6 +2,7 @@ import radio #type: ignore
 from microbit import button_a, button_b, pin0, display #type: ignore
 from neopixel import NeoPixel
 from micropython import const
+import time
 
 class CommandID:
     OPEN = const(10)
@@ -17,6 +18,8 @@ class CommandID:
     TEAM_ASSIGNMENT = const(60)
     COLOR_PROFILE_ASSIGNMENT = const(65)
     LIGHT_SET = const(70)
+    IDENTIFY = const(75)
+    NOT_NEEDED = const(80)
 
 class ColorProfile:
     def __init__(self, inactiveColor, waitingColor, activeColor, lockedColor):
@@ -55,7 +58,7 @@ class Buzzer:
         
         self.__colorProfile = DEFAULT_COLOR_PROFILE
 
-        self.__teamID = 1
+        self.__teamID = None
 
     def open(self):
         if self.__locked: # only open the buzer if it wasn't already locked
@@ -71,8 +74,8 @@ class Buzzer:
 
     def updatePixels(self):
         # get the correct color from ColorProfile object, and make the neopixels display it
-        if self.__displayPixels:
-            display.scroll(self.__state)
+        if self.__displayPixels and self.__teamID is not None:
+            display.show(self.__state[0], wait=False)
         else:
             display.clear()
 
@@ -138,13 +141,21 @@ class Buzzer:
 
             if radioData[0] == CommandID.LIGHT_TOGGLE: # toggle whether the neopixels should display or not
                 self.toggleLight()
-            elif radioData[0] == CommandID.LIGHT_SET: # set whether the neopixels should display
+            elif radioData[0] == CommandID.LIGHT_SET: # set whether the neopixels should display or not
                 self.toggleLight(radioData[1])
             elif radioData[0] == CommandID.LIGHT_UPDATE: # update the neopixels, if an error occured
                 self.updatePixels()
             elif radioData[0] == CommandID.TEAM_ASSIGNMENT: # set the teamID of the buzzer
                 if radioData[1] == self.__ID: # only do this if the supplied buzzerID matches this buzzer's
                     self.__teamID = radioData[2]
+            elif radioData[0] == CommandID.IDENTIFY: # used to identify a single buzzer to the host and audience
+                if radioData[1] == self.__ID:
+                    self.setActive()
+                else:
+                    self.close()
+            elif radioData[0] == CommandID.NOT_NEEDED:
+                self.__teamID = None
+                self.updatePixels()
                     
     def getID(self):
         # use the microbits built in buttons to allow the admin to set the buzzer's ID
@@ -156,10 +167,15 @@ class Buzzer:
             elif button_a.is_pressed():
                 if ID > 0:
                     ID -= 1
+                    display.clear()
+                time.sleep(0.3)
             elif button_b.is_pressed():
-                if ID < 16:
+                if ID < 25:
                     ID += 1
-            display.show(ID, wait=False)
+                time.sleep(0.3)
+
+            for i in range(ID):
+                display.set_pixel(i//5, i%5, 9)
         display.scroll("Active")
 
         return ID

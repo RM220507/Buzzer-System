@@ -1,5 +1,5 @@
 TO DO - Buzzer System
 ------------------------------
-4. Design Micro:bit holder
-5. Create Question Set app
-6. Test Micro:bit NeoPixels
+Set Creation app
+Usage instructions
+Images of designs
