@@ -16,6 +16,36 @@ class Font:
         self.LARGE = ctk.CTkFont("Bahnschrift Semibold", 72, "bold", "roman")
         self.SMALL = ctk.CTkFont("Bahnschrift Semibold", 36, "bold", "roman")
     
+class MacroController(ctk.CTkFrame):
+    def __init__(self, master, commands, count, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.__commands = commands
+        self.__count = count
+        
+        self.__commandBind = ["" for i in range(self.__count)]
+        
+        self.__btns = []
+        for i in range(self.__count):
+            btn = ctk.CTkButton(self, text="No Macro Selected", command= lambda ix=i: self.setPrompt(ix))
+            btn.grid(row=i//3, column=i%3, padx=5, pady=5, sticky="nsew")
+            self.__btns.append(btn)
+        
+    def execute(self, id):
+        if 0 <= id < len(self.__commandBind):
+            command = self.__commands.get(self.__commandBind[id])
+            if command is not None:
+                command()
+                
+    def setPrompt(self, id):
+        self.__selector = Selector(self.master, list(self.__commands.keys()), self.set, (id,))
+    
+    def set(self, value, id):
+        self.__selector.destroy()
+        
+        self.__commandBind[id] = value
+        self.__btns[id].configure(text=value)
+        
 class Soundboard(ctk.CTkFrame):
     def __init__(self, master, sounds, **kwargs):
         super().__init__(master, **kwargs)
@@ -25,12 +55,17 @@ class Soundboard(ctk.CTkFrame):
         
         self.__sounds = sounds
         
+        ctk.CTkButton(self, text="Stop All Sounds", command=self.stop).grid(row=0, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
+        
         for i, sound in enumerate(self.__sounds.NAME_ASSIGNMENT):
             btn = ctk.CTkButton(self, text=sound, command= lambda x=sound: self.play(x))
-            btn.grid(row=i//4, column=i%4, padx=5, pady=5, sticky="nsew")
+            btn.grid(row=(i//4)+1, column=i%4, padx=5, pady=5, sticky="nsew")
     
     def play(self, sound):
         mixer.Sound.play(self.__sounds.NAME_ASSIGNMENT[sound])
+        
+    def stop(self):
+        mixer.stop()
         
 class HostScoreboard(ctk.CTkFrame):
     def __init__(self, master, teamController, **kwargs):
@@ -284,6 +319,8 @@ class BigPicture(ctk.CTkToplevel):
         
         self.title("Buzzer System Big Picture Display")
         
+        self.fullscreen = False
+        
     def updateRound(self, roundIndex, totalRounds, roundName):
         self.roundCountLabel.configure(text=f"Round {roundIndex} of {totalRounds}")
         self.roundNameLabel.configure(text=roundName)
@@ -296,7 +333,22 @@ class BigPicture(ctk.CTkToplevel):
         self.questionLabel.configure(text=question)
         
     def toggleFullscreen(self):
-        self.attributes("-fullscreen", not self.attributes("-fullscreen"))
+        if self.fullscreen:
+            self.deactivateFullscreen()
+        else:
+            self.activateFullscreen()
+            
+    def activateFullscreen(self):
+        self.fullscreen = True
+
+        self.overrideredirect(True)
+        self.state("zoomed")
+
+    def deactivateFullscreen(self):
+        self.fullscreen = False
+        
+        self.overrideredirect(False)
+        self.state("normal")
         
     def displayBlank(self):
         self.roundFrame.pack_forget()

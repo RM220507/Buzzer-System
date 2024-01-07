@@ -625,6 +625,11 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="customtkinter.CTkTabview.Tab" id="macroTab" named="True">
+            <property name="label" translatable="yes">Macros</property>
+          </object>
+        </child>
       </object>
     </child>
   </object>

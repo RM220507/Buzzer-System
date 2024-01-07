@@ -17,6 +17,7 @@ class BuzzerController:
     def mainloop(self):
         serialData = ""
         while True:
+            # check radio data for buzz
             radioData = radio.receive_bytes()
             if radioData:
                 if int(radioData[0]) == 50:
@@ -26,6 +27,9 @@ class BuzzerController:
                     else:
                         self.sendMsg([55, radioData[1]])
 
+            #! check for MACROS
+
+            # check serial data for command
             newByte = uart.read(1)
             if newByte is None:
                 continue

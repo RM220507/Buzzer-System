@@ -5,7 +5,7 @@ import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
-from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard
+from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
@@ -49,7 +49,7 @@ class Sound:
         "Incorrect" : INCORRECT,
         "Victory" : VICTORY,
         "Klaxon" : KLAXON,
-        "Trombone Sad" : TROMBONE,
+        "Sad Trombone" : TROMBONE,
         "Ba Dum Crash" : AWFUL_JOKE,
         "Drum Roll" : DRUMROLL
     }
@@ -424,7 +424,7 @@ class BuzzerControlApp:
 
         self.showBuzzerClosedFrame()
         
-        self.__serialController = SerialController(self.buzzCallback)
+        self.__serialController = SerialController(self.serialCallback)
         
         self.__db = sqlite3.connect("buzzer.db")
         self.__cursor = self.__db.cursor() #type: ignore
@@ -447,6 +447,37 @@ class BuzzerControlApp:
         
         self.__soundboardWidget = Soundboard(builder.get_object("soundboardTab"), Sound)
         self.__soundboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
+        
+        commands = {
+            "Host: Display Hosting Tab"          : lambda: self.builder.get_object("mainTabview").set("Hosting"),
+            "Host: Display Big Picture Tab"      : lambda: self.builder.get_object("mainTabview").set("Big Picture"),
+            "Host: Display Team Setup Tab"       : lambda: self.builder.get_object("mainTabview").set("Team Setup"),
+            "Host: Display Scoreboard Tab"       : lambda: self.builder.get_object("mainTabview").set("Scoreboard"),
+            "Host: Display Soundboard Tab"       : lambda: self.builder.get_object("mainTabview").set("Soundboard"),
+            "Host: Display Buzzer Functions Tab" : lambda: self.builder.get_object("mainTabview").set("Buzzer Functions"),
+            "Host: Display Macros Tab"           : lambda: self.builder.get_object("mainTabview").set("Macros"),
+            "Big Picture: Open"                  : self.openBigPicture,
+            "Big Picture: Display Question"      : self.showBigPictureQuestion,
+            "Big Picture: Display Round"         : self.showBigPictureRound,
+            "Big Picture: Display Title"         : self.showBigPictureTitle,
+            "Big Picture: Display Scoreboard"    : self.showBigPictureScoreboard,
+            "Big Picture: Display Blank"         : self.showBigPictureBlank,
+            "Soundboard: Play Correct"           : lambda: self.__soundboardWidget.play("Correct"),
+            "Soundboard: Play Incorrect"         : lambda: self.__soundboardWidget.play("Incorrect"),
+            "Soundboard: Play Buzzer"            : lambda: self.__soundboardWidget.play("Buzzer"),
+            "Soundboard: Play Victory"           : lambda: self.__soundboardWidget.play("Victory"),
+            "Soundboard: Play Klaxon"            : lambda: self.__soundboardWidget.play("Klaxon"),
+            "Soundboard: Play Sad Trombone"      : lambda: self.__soundboardWidget.play("Sad Trombone"),
+            "Soundboard: Play Ba Dum Crash"      : lambda: self.__soundboardWidget.play("Ba Dum Crash"),
+            "Soundboard: Play Drum Roll"         : lambda: self.__soundboardWidget.play("Drum Roll"),
+            "Soundboard: Stop"                   : self.__soundboardWidget.stop,
+            "Buzzer Functions: Resend"           : self.buzzerFuncResend,
+            "Buzzer Functions: Lights On"        : self.buzzerFuncLightOn,
+            "Buzzer Functions: Lights Off"       : self.buzzerFuncLightOff,
+            "Buzzer Functions: Update Lights"    : self.buzzerFuncLightUpdate
+        }
+        self.__macroController = MacroController(builder.get_object("macroTab"), commands, 6)
+        self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)
 
     def run(self):
         self.__serialController.start()
@@ -737,15 +768,17 @@ class BuzzerControlApp:
         self.__teamController.applyPenalty()
         self.nextQuestion()
     
-    def buzzCallback(self, data):
+    def serialCallback(self, data):
         print(data)
         data = data.split()
-        if len(data) >= 2 and data[0] == "buzzed":
+        if len(data) >= 2 and data[0] == "buzzed" and data[1].isdigit():
             teamID, buzzerID = self.__teamController.fromPinIndex(int(data[1]))
             self.__teamController.setActive(teamID, buzzerID)
             self.updateBuzzerAliasLabel()
             self.showBuzzerBuzzedFrame()
             mixer.Sound.play(Sound.BUZZED)
+        elif len(data) >= 2 and data[0] == "macro" and data[1].isdigit():
+            self.__macroController.execute(int(data[1]))
             
     def updateBuzzerAliasLabel(self):
         teamAlias, buzzerAlias, activeColor = self.__teamController.getActiveAlias()
