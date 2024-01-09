@@ -1,5 +1,6 @@
 TO DO - Buzzer System
 ------------------------------
-Set Creation app
+Set Creation app <- literally just needs to allow creation of questions, rounds, sets, and color palettes
 Usage instructions
-Images of designs
+
+Plate thickness -> 5mm

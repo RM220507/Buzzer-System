@@ -23,13 +23,16 @@ class MacroController(ctk.CTkFrame):
         self.__commands = commands
         self.__count = count
         
-        self.__commandBind = ["" for i in range(self.__count)]
+        self.__commandBind = ["No Macro Selected" for i in range(self.__count)]
+        
+        self.__selector = None
         
         self.__btns = []
         for i in range(self.__count):
-            btn = ctk.CTkButton(self, text="No Macro Selected", command= lambda ix=i: self.setPrompt(ix))
+            btn = ctk.CTkButton(self, text=self.__commandBind[i], command= lambda ix=i: self.setPrompt(ix))
             btn.grid(row=i//3, column=i%3, padx=5, pady=5, sticky="nsew")
             self.__btns.append(btn)
+            
         
     def execute(self, id):
         if 0 <= id < len(self.__commandBind):
@@ -38,10 +41,13 @@ class MacroController(ctk.CTkFrame):
                 command()
                 
     def setPrompt(self, id):
+        if self.__selector is not None and self.__selector.winfo_exists():
+            self.__selector.destroy()
         self.__selector = Selector(self.master, list(self.__commands.keys()), self.set, (id,))
     
     def set(self, value, id):
-        self.__selector.destroy()
+        if self.__selector is not None:
+            self.__selector.destroy()
         
         self.__commandBind[id] = value
         self.__btns[id].configure(text=value)

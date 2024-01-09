@@ -28,6 +28,23 @@ class SetCreatorApp(ctk.CTk):
         qTab = QuestionTab(self.tabview.tab("Questions"), self.db, self.cursor)
         qTab.pack(padx=5, pady=5, expand=True, fill="both")
         
+        self.tabview.add("Colour Palettes")
+        paletteTab = PaletteTab(self.tabview.tab("Colour Palettes"), self.db, self.cursor)
+        paletteTab.pack(padx=5, pady=5, expand=True, fill="both")
+        
+class PaletteTab(ctk.CTkFrame):
+    def __init__(self, master, db, cursor, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.db = db
+        self.cursor = cursor
+        
+        self.columnconfigure(0, weight=2)
+        self.columnconfigure((1, 2, 3, 4), weight=1)
+        
+    def search(self):
+        pass
+        
 class QuestionTab(ctk.CTkFrame):
     def __init__(self, master, db, cursor, **kwargs):
         super().__init__(master, **kwargs)
