@@ -45,7 +45,10 @@ class BuzzerController:
     def execute(self, serialData):
         commands = serialData.split(";")
         for command in commands:
-            commandArray = list(map(int, serialData.split()))
+            try:
+                commandArray = list(map(int, command.split()))
+            except ValueError:
+                continue
             self.sendMsg(commandArray)
             
             if command[0] == 10 or command[0] == 25 or command[0] == 30 or command[0] == 35:

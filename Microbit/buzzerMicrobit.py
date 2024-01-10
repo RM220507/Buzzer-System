@@ -75,7 +75,7 @@ class Buzzer:
     def updatePixels(self):
         # get the correct color from ColorProfile object, and make the neopixels display it
         if self.__displayPixels and self.__teamID is not None:
-            display.show(self.__state[0], wait=False)
+            display.scroll(self.__state)
         else:
             display.clear()
 
@@ -107,6 +107,8 @@ class Buzzer:
             radioData = radio.receive_bytes()
             if not radioData:
                 continue
+            
+            display.scroll(str(type(radioData[0])))
 
             if self.__teamID != None: # these are all commands that require team affiliation, so if the team hasn't been setup, there's no point checking them
                 if radioData[0] == CommandID.OPEN:
