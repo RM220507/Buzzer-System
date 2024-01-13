@@ -43,7 +43,7 @@ class ColorProfile:
 DEFAULT_COLOR_PROFILE = ColorProfile((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)) # default color palette is all off, so the neopixels aren't on before the buzzer is properly initialised
 
 class Buzzer:
-    def __init__(self):
+    def __init__(self, neopixelPin):
         # setup the radio module
         radio.config(group=16, power=7)
         radio.on()
@@ -51,7 +51,7 @@ class Buzzer:
         self.__ID = self.getID() # get the ID before continuing with initialisation
 
         self.__displayPixels = True
-        #self.__pixels = NeoPixel(pin0, 2)
+        #self.__pixels = NeoPixel(neopixelPin, 1)
 
         self.__state = "inactive"
         self.__locked = False
@@ -182,6 +182,6 @@ class Buzzer:
 
         return ID
     
-buzzer = Buzzer() # setup buzzer object
+buzzer = Buzzer(pin0) # setup buzzer object
 
 buzzer.mainloop() # run main event loop
