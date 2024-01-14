@@ -1,5 +1,6 @@
-from microbit import uart, display #type: ignore
+from microbit import uart, button_a #type: ignore
 import radio #type: ignore
+import time
 
 class BuzzerController:
     def __init__(self):
@@ -10,6 +11,7 @@ class BuzzerController:
         radio.on()
 
         self.__waitingForBuzz = False
+        self.__lastCommand = ""
     
     def sendMsg(self, array):
         radio.send_bytes(bytes(array))
@@ -28,6 +30,10 @@ class BuzzerController:
                         self.sendMsg([55, radioData[1]])
 
             #! check for MACROS
+            if button_a.is_pressed():
+                if self.__lastCommand != "":
+                    self.execute(self.__lastCommand)
+                    time.sleep(0.1)
 
             # check serial data for command
             newByte = uart.read(1)
@@ -36,7 +42,7 @@ class BuzzerController:
             
             newChar = str(newByte, "UTF-8")
             if newChar == "\n":
-                print(serialData)
+                self.__lastCommand = serialData
                 self.execute(serialData)
                 serialData = ""
             else:

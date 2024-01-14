@@ -1,5 +1,5 @@
 import radio #type: ignore
-from microbit import button_a, button_b, pin0, display #type: ignore
+from microbit import button_a, button_b, pin1, display #type: ignore
 from neopixel import NeoPixel
 from micropython import const
 import time
@@ -21,6 +21,7 @@ class CommandID:
     IDENTIFY = const(75)
     NOT_NEEDED = const(80)
 
+BLACK = (0, 0, 0)
 class ColorProfile:
     def __init__(self, inactiveColor, waitingColor, activeColor, lockedColor):
         self.__inactiveColor = inactiveColor
@@ -40,10 +41,10 @@ class ColorProfile:
         else:
             return (0, 0, 0)
         
-DEFAULT_COLOR_PROFILE = ColorProfile((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)) # default color palette is all off, so the neopixels aren't on before the buzzer is properly initialised
+DEFAULT_COLOR_PROFILE = ColorProfile(BLACK, BLACK, BLACK, BLACK) # default color palette is all off, so the neopixels aren't on before the buzzer is properly initialised
 
 class Buzzer:
-    def __init__(self, neopixelPin):
+    def __init__(self, neopixelPin, pixelCount):
         # setup the radio module
         radio.config(group=16, power=7)
         radio.on()
@@ -51,7 +52,8 @@ class Buzzer:
         self.__ID = self.getID() # get the ID before continuing with initialisation
 
         self.__displayPixels = True
-        #self.__pixels = NeoPixel(neopixelPin, 1)
+        self.__pixelCount = pixelCount
+        self.__pixels = NeoPixel(neopixelPin, pixelCount)
 
         self.__state = "inactive"
         self.__locked = False
@@ -75,9 +77,15 @@ class Buzzer:
     def updatePixels(self):
         # get the correct color from ColorProfile object, and make the neopixels display it
         if self.__displayPixels and self.__teamID is not None:
-            display.scroll(self.__state)
+            color = self.__colorProfile.get(self.__state)
+            self.displayColor(color)
         else:
-            display.clear()
+            self.displayColor(BLACK)
+
+    def displayColor(self, color):
+        for i in range(self.__pixelCount):
+            self.__pixels[i] = color
+        self.__pixels.show() # type: ignore
 
     def resetLock(self):
         self.__locked = False
@@ -108,7 +116,7 @@ class Buzzer:
             if not radioData:
                 continue
             
-            display.scroll(str(type(radioData[0])))
+            #display.scroll(str(type(radioData[0])))
 
             if self.__teamID != None: # these are all commands that require team affiliation, so if the team hasn't been setup, there's no point checking them
                 if radioData[0] == CommandID.OPEN:
@@ -150,6 +158,7 @@ class Buzzer:
             elif radioData[0] == CommandID.TEAM_ASSIGNMENT: # set the teamID of the buzzer
                 if radioData[1] == self.__ID: # only do this if the supplied buzzerID matches this buzzer's
                     self.__teamID = radioData[2]
+                    self.updatePixels()
             elif radioData[0] == CommandID.IDENTIFY: # used to identify a single buzzer to the host and audience
                 if radioData[1] == self.__ID:
                     self.setActive()
@@ -178,10 +187,10 @@ class Buzzer:
 
             for i in range(ID):
                 display.set_pixel(i//5, i%5, 9)
-        display.scroll("Active")
+        display.scroll(f"ID: {ID}. Active")
 
         return ID
     
-buzzer = Buzzer(pin0) # setup buzzer object
+buzzer = Buzzer(pin1, 1) # setup buzzer object
 
 buzzer.mainloop() # run main event loop

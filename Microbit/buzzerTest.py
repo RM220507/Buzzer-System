@@ -1,4 +1,4 @@
-from microbit import button_a, pin0 #type: ignore
+from microbit import button_a, pin1 #type: ignore
 from neopixel import NeoPixel
 import time
 
@@ -15,7 +15,7 @@ class BuzzerTest:
         self.__active = False
         
         self.__pixelCount = pixelCount
-        self.__pixels = NeoPixel(neopixelPin, n=pixelCount)
+        self.__pixels = NeoPixel(neopixelPin, pixelCount, bpp=3)
         
     def updatePixels(self):
         if self.__active:
@@ -23,8 +23,9 @@ class BuzzerTest:
         else:
             color = Color.RED
         
-        self.__pixels.fill(color)
-        self.__pixels.write()
+        for i in range(self.__pixelCount):
+            self.__pixels[i] = color
+        self.__pixels.show() # type: ignore
         
     def mainloop(self):
         while True:
@@ -33,4 +34,5 @@ class BuzzerTest:
                 self.updatePixels()
                 time.sleep(1)
                 
-buzzerTest = BuzzerTest(pin0, 1)
+buzzerTest = BuzzerTest(pin1, 1)
+buzzerTest.mainloop()
