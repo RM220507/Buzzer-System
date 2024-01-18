@@ -57,9 +57,9 @@ class BuzzerController:
                 continue
             self.sendMsg(commandArray)
             
-            if command[0] == 10 or command[0] == 25 or command[0] == 30 or command[0] == 35:
+            if commandArray[0] == 10 or commandArray[0] == 25 or commandArray[0] == 30 or commandArray[0] == 35:
                 self.__waitingForBuzz = True
-            elif command[0] == 15 or command[0] == 20 or command[0] == 60 or command[0] == 75:
+            elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75:
                 self.__waitingForBuzz = False
                 
 controller = BuzzerController()
