@@ -298,6 +298,10 @@ class QuestionManager:
             self.__questions[i].append(0)
         self.__currentQuestion = self.__questions[0]
 
+    def nextRound(self):
+        self.__questionID = len(self.__questions)
+        return self.advanceQuestion()
+
     def advanceQuestion(self):
         if not self.__setLoaded:
             self.__currentQuestion = ["No Set Loaded", "", "", 0, 0, None, 1]
@@ -320,7 +324,8 @@ class QuestionManager:
             elif self.__currentQuestion[6] == 2:
                 self.getQuestions()
             elif self.__currentQuestion[6] == 3:
-                pass  # END OF GAME <- DON'T INCREMENT
+                self.__currentQuestion = [
+                    "Game End", "", "", 0, 0, None, 0]
 
         return self.__currentQuestion
 
@@ -463,7 +468,7 @@ class BuzzerControlApp:
             "currentQuestionNotesLabel").configure(wraplength=800)
 
         self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 25, self.setupTeams, self.loadColorPalettePrompt,
-                                           self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
+                                        self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__scoreboardWidget = HostScoreboard(
@@ -663,9 +668,11 @@ class BuzzerControlApp:
                 currentRound[0], numRounds, currentRound[1])
 
     def nextQuestion(self):
-        self.clearBuzzerAliasLabel()
         questionData = self.__questionManager.advanceQuestion()
+        self.handleNextQuestion(questionData)
 
+    def handleNextQuestion(self, questionData):
+        self.clearBuzzerAliasLabel()
         self.buzzerClose()
         self.__teamController.clearActive()
         self.updateQuestionLabels(questionData)
@@ -677,7 +684,7 @@ class BuzzerControlApp:
             self.showBuzzerAdvanceFrame()
         elif questionData[6] == 2:
             self.showBigPictureRound()
-            self.showBuzzerAdvanceFrame()
+            self.showBuzzerAdvanceRoundFrame()
 
     def updateQuestionLabels(self, questionData):
         self.builder.get_object("questionPointsLabel").configure(
@@ -731,6 +738,10 @@ class BuzzerControlApp:
     def skipQuestion(self):
         mixer.Sound.play(Sound.INCORRECT)
         self.nextQuestion()
+        
+    def skipRound(self):
+        nextQuestion = self.__questionManager.nextRound()
+        self.handleNextQuestion(nextQuestion)
 
     def buzzerClose(self):
         self.__serialController.writeLine(f"{CommandID.CLOSE}")
@@ -768,6 +779,7 @@ class BuzzerControlApp:
             padx=10, pady=10, expand=True, fill="both")
         self.builder.get_object("buzzerControlClosedFrame").pack_forget()
         self.builder.get_object("buzzerControlBuzzedFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceRoundFrame").pack_forget()
         self.builder.get_object("buzzerControlAdvanceFrame").pack_forget()
 
     def showBuzzerClosedFrame(self):
@@ -775,6 +787,7 @@ class BuzzerControlApp:
         self.builder.get_object("buzzerControlClosedFrame").pack(
             padx=10, pady=10, expand=True, fill="both")
         self.builder.get_object("buzzerControlBuzzedFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceRoundFrame").pack_forget()
         self.builder.get_object("buzzerControlAdvanceFrame").pack_forget()
 
     def showBuzzerBuzzedFrame(self):
@@ -783,12 +796,22 @@ class BuzzerControlApp:
             padx=10, pady=10, expand=True, fill="both")
         self.builder.get_object("buzzerControlClosedFrame").pack_forget()
         self.builder.get_object("buzzerControlAdvanceFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceRoundFrame").pack_forget()
 
     def showBuzzerAdvanceFrame(self):
         self.builder.get_object("buzzerControlWaitingFrame").pack_forget()
         self.builder.get_object("buzzerControlBuzzedFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceRoundFrame").pack_forget()
         self.builder.get_object("buzzerControlClosedFrame").pack_forget()
         self.builder.get_object("buzzerControlAdvanceFrame").pack(
+            padx=10, pady=10, expand=True, fill="both")
+        
+    def showBuzzerAdvanceRoundFrame(self):
+        self.builder.get_object("buzzerControlWaitingFrame").pack_forget()
+        self.builder.get_object("buzzerControlBuzzedFrame").pack_forget()
+        self.builder.get_object("buzzerControlClosedFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceFrame").pack_forget()
+        self.builder.get_object("buzzerControlAdvanceRoundFrame").pack(
             padx=10, pady=10, expand=True, fill="both")
 
     def buzzerOpenTeam(self):

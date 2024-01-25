@@ -1,6 +1,6 @@
 TO DO - Buzzer System
 ------------------------------
+Round display name
+Test round skip
 Set Creation app <- literally just needs to allow creation of questions, rounds, sets, and color palettes
 Usage instructions
-
-Plate thickness -> 5mm

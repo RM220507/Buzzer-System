@@ -172,6 +172,7 @@
                         <property name="command" type="command" cbtype="simple">skipQuestion</property>
                         <property name="text" translatable="yes">Skip Question</property>
                         <layout manager="pack">
+                          <property name="fill">x</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
                           <property name="side">right</property>
@@ -183,6 +184,7 @@
                         <property name="command" type="command" cbtype="simple">buzzerClose</property>
                         <property name="text" translatable="yes">Close Entry</property>
                         <layout manager="pack">
+                          <property name="fill">x</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
                           <property name="side">top</property>
@@ -376,6 +378,46 @@
                           <property name="padx">5</property>
                           <property name="pady">5</property>
                           <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkFrame" id="buzzerControlAdvanceRoundFrame" named="True">
+                    <layout manager="pack">
+                      <property name="expand">true</property>
+                      <property name="fill">x</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="side">top</property>
+                    </layout>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlAdvanceRoundButton" named="True">
+                        <property name="command" type="command" cbtype="simple">nextQuestion</property>
+                        <property name="compound">top</property>
+                        <property name="text" translatable="yes">Next Round</property>
+                        <layout manager="pack">
+                          <property name="expand">true</property>
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">left</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlAdvanceRoundSkipButton" named="True">
+                        <property name="command" type="command" cbtype="simple">skipRound</property>
+                        <property name="compound">top</property>
+                        <property name="hover">True</property>
+                        <property name="text" translatable="yes">Skip Round</property>
+                        <layout manager="pack">
+                          <property name="expand">true</property>
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">right</property>
                         </layout>
                       </object>
                     </child>
