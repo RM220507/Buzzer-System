@@ -155,8 +155,9 @@ class Buzzer:
                 else:
                     self.close()
             elif radioData[0] == 80:
-                self.__teamID = None
-                self.updatePixels()
+                if radioData[1] == self.__ID:
+                    self.__teamID = None
+                    self.updatePixels()
 
 buzzer = Buzzer(0, pin1, pin0, 7) # setup buzzer object
 

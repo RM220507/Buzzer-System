@@ -9,6 +9,7 @@ from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostS
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
+import sys
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -32,7 +33,6 @@ class CommandID:
     IDENTIFY = 75
     NOT_NEEDED = 80
 
-
 class Sound:
     INCORRECT = mixer.Sound("assets/sounds/incorrect.mp3")
     CORRECT = mixer.Sound("assets/sounds/correct.mp3")
@@ -54,7 +54,6 @@ class Sound:
         "Ba Dum Crash": AWFUL_JOKE,
         "Drum Roll": DRUMROLL
     }
-
 
 class TeamController:
     def __init__(self, questionController):
@@ -136,13 +135,20 @@ class TeamController:
         self.__teams = []
         commands = []
 
+        availableBuzzers = list(range(25))
         for i, team in enumerate(teams):
             newTeam = Team(i, team[0], team[1], team[2])
             commands.extend(newTeam.generateCommands())
+            
+            for buzzerID in team[2]: 
+                availableBuzzers.remove(buzzerID)
 
             self.__teams.append(newTeam)
+            
+        notNeededFirst = [f"{CommandID.NOT_NEEDED} {buzzerID}" for buzzerID in availableBuzzers]
+        notNeededFirst.extend(commands)
 
-        return commands
+        return notNeededFirst
 
     def getCommands(self):
         commands = []
@@ -166,7 +172,6 @@ class TeamController:
     @property
     def activeTeam(self):
         return self.__activeTeam
-
 
 class Team:
     def __init__(self, ID, alias, colorPalette, buzzers):
@@ -219,7 +224,6 @@ class Team:
             if buzzer.pinIndex == pinIndex:
                 return buzzer.ID
 
-
 class Buzzer:
     def __init__(self, ID, pinIndex, alias):
         self.__ID = ID
@@ -237,7 +241,6 @@ class Buzzer:
     @property
     def alias(self):
         return self.__alias
-
 
 class QuestionManager:
     def __init__(self, db, cursor):
@@ -262,7 +265,7 @@ class QuestionManager:
         self.__setLoaded = True
 
         self.__cursor.execute(
-            "SELECT Name FROM QuestionSet WHERE ID = ?", (ID,))
+            "SELECT Name, Subtitle FROM QuestionSet WHERE ID = ?", (ID,))
         setName = self.__cursor.fetchone()
 
         self.__cursor.execute(
@@ -270,11 +273,14 @@ class QuestionManager:
         self.__rounds = self.__cursor.fetchall()
         self.__roundID = 0
 
-        self.__setInfo = (setName[0], len(self.__rounds))
+        self.__setInfo = (setName[0][0], setName[0][1], len(self.__rounds))
 
         self.getQuestions()
+        
+        self.__currentQuestion = ["Game Not Started", "Move to Next Question to Start", "", 0, 0, None, 1]
+        self.__questionID = -1
 
-        return self.currentRound, self.__setInfo
+        return self.__setInfo
 
     @property
     def currentRound(self):
@@ -300,11 +306,12 @@ class QuestionManager:
 
     def nextRound(self):
         self.__questionID = len(self.__questions)
+        self.__roundID += 1
         return self.advanceQuestion()
 
     def advanceQuestion(self):
         if not self.__setLoaded:
-            self.__currentQuestion = ["No Set Loaded", "", "", 0, 0, None, 1]
+            self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
         else:
             if self.__currentQuestion[6] == 0:
                 self.__currentQuestion[6] = 1
@@ -314,25 +321,24 @@ class QuestionManager:
                 if self.__questionID >= len(self.__questions):
                     self.__roundID += 1
                     if self.__roundID >= len(self.__rounds):
-                        self.__currentQuestion = [
-                            "Game End", "", "", 0, 0, None, 3]
+                        self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
                     else:
-                        self.__currentQuestion = [
-                            "Round Break", "", "", 0, 0, None, 2]
+                        self.__currentQuestion = ["Round Break", "", "", 0, 0, None, 2]
                 else:
                     self.__currentQuestion = self.__questions[self.__questionID]
             elif self.__currentQuestion[6] == 2:
-                self.getQuestions()
+                if self.__roundID >= len(self.__rounds):
+                    self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
+                else:
+                    self.getQuestions()
             elif self.__currentQuestion[6] == 3:
-                self.__currentQuestion = [
-                    "Game End", "", "", 0, 0, None, 0]
+                self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
 
         return self.__currentQuestion
 
     @property
     def currentQuestion(self):
         return self.__currentQuestion
-
 
 class AidController:
     def __init__(self, hostDisplayParent, bigPictureDisplay=None):
@@ -384,16 +390,18 @@ class AidController:
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
             self.__bigPictureDisplay.seek(time)
 
-
 class SerialController(threading.Thread):
     def __init__(self, readCallback):
         super().__init__(daemon=True)
+        
+        self.attemptConnection()
+        
+        self.__readCallback = readCallback
 
+    def attemptConnection(self):
         self.__port = self.findCOMport(516, 3368, 9600)
         if not self.__port.is_open:
-            raise ConnectionRefusedError("Micro:bit port not found")
-
-        self.__readCallback = readCallback
+            self.raiseException()
 
     def findCOMport(self, PID, VID, baud):
         serPort = serial.Serial(baudrate=baud)
@@ -418,12 +426,22 @@ class SerialController(threading.Thread):
     def writeLine(self, string):
         self.__port.write(bytes((string + "\n"), "utf-8"))
 
-    def run(self):
-        while True:
-            if self.checkBuffer():
-                data = self.getLine()
-                self.__readCallback(data)
+    def raiseException(self):
+        askRetry = messagebox.askretrycancel(
+            title = "Controller Connection Error",
+            message = "No controller micro:bit was detected. Retry?"
+        )
+        if askRetry:
+            self.attemptConnection()
 
+    def run(self):
+        try:
+            while True:
+                if self.checkBuffer():
+                    data = self.getLine()
+                    self.__readCallback(data)
+        except:
+            self.raiseException()
 
 class Color:
     WHITE = "#FFF"
@@ -434,7 +452,6 @@ class Color:
         value = value.lstrip('#')
         lv = len(value)
         return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
-
 
 class BuzzerControlApp:
     def __init__(self, master=None):
@@ -466,6 +483,11 @@ class BuzzerControlApp:
             "currentQuestionAnswerLabel").configure(wraplength=800)
         builder.get_object(
             "currentQuestionNotesLabel").configure(wraplength=800)
+        
+        builder.get_object(
+            "buzzerControlClosedTeamSelect").set("")
+        builder.get_object(
+            "buzzerControlClosedTeamSelect").configure(values=[])
 
         self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 25, self.setupTeams, self.loadColorPalettePrompt,
                                         self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
@@ -516,14 +538,12 @@ class BuzzerControlApp:
     def run(self):
         self.__serialController.start()
 
-        # self.__serialController.writeLine("WHY?")
-
         self.mainwindow.mainloop()
 
     def loadQuestionSet(self, value):
         setID = int(value.split()[0])
 
-        currentRound, setInfo = self.__questionManager.loadSet(setID)
+        setInfo = self.__questionManager.loadSet(setID)
 
         self.builder.get_object("questionSetLabel").configure(text=setInfo[0])
 
@@ -531,9 +551,12 @@ class BuzzerControlApp:
         self.updateQuestionLabels(self.__questionManager.currentQuestion)
 
         self.buzzerClose()
+        self.showBuzzerAdvanceFrame()
 
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.bigPicture.updateTitle(setInfo[0], "")
+            if self.bigPicture.getTitle() == "":
+                self.bigPicture.updateTitle(setInfo[0], setInfo[1])
+            self.bigPicture.displayTitle()
 
     def loadQuestionSetPrompt(self):
         setList = self.__questionManager.getSets()
@@ -649,10 +672,12 @@ class BuzzerControlApp:
         teamData = self.__teamController.getTeamStrings()
         self.builder.get_object(
             "buzzerControlClosedTeamSelect").configure(values=teamData)
-        self.builder.get_object(
-            "buzzerControlClosedTeamSelect").set(teamData[0])
+        
+        if len(teamData) > 0:
+            self.builder.get_object(
+                "buzzerControlClosedTeamSelect").set(teamData[0])
 
-        self.__serialController.writeLine(";".join(commands))
+            self.__serialController.writeLine(";".join(commands))
 
         self.__scoreboardWidget.updateValues(self.__teamController.teams)
 
@@ -736,7 +761,7 @@ class BuzzerControlApp:
             self.bigPicture.displayScoreboard()
 
     def skipQuestion(self):
-        mixer.Sound.play(Sound.INCORRECT)
+        #mixer.Sound.play(Sound.INCORRECT)
         self.nextQuestion()
         
     def skipRound(self):

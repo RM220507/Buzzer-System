@@ -335,6 +335,9 @@ class BigPicture(ctk.CTkToplevel):
         self.titleLabel.configure(text=title)
         self.subtitleLabel.configure(text=subtitle)
         
+    def getTitle(self):
+        return self.titleLabel.cget("text")
+        
     def updateQuestion(self, question):
         self.questionLabel.configure(text=question)
         
@@ -633,7 +636,6 @@ class BuzzerElement(ctk.CTkFrame):
         
         self.__teamDropdown = ctk.CTkOptionMenu(self, values=[])
         self.__teamDropdown.grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
-        self.__teamDropdown.set("Select Team")
         
         ctk.CTkButton(self, text="Identify", command=lambda: identifyCallback(self.__index)).grid(row=3, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         
