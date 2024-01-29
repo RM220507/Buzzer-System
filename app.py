@@ -269,7 +269,7 @@ class QuestionManager:
         setName = self.__cursor.fetchone()
 
         self.__cursor.execute(
-            "SELECT ID, Name FROM Round, RoundSet WHERE Round.ID = RoundSet.RoundID AND RoundSet.SetID = ? ORDER BY Position", (ID,))
+            "SELECT ID, Name, DisplayName FROM Round, RoundSet WHERE Round.ID = RoundSet.RoundID AND RoundSet.SetID = ? ORDER BY Position", (ID,))
         self.__rounds = self.__cursor.fetchall()
         self.__roundID = 0
 
@@ -285,7 +285,10 @@ class QuestionManager:
     @property
     def currentRound(self):
         if self.__setLoaded:
-            return self.__roundID + 1, self.__rounds[self.__roundID][1]
+            if self.__rounds[self.__roundID][2] is None:
+                return self.__roundID + 1, self.__rounds[self.__roundID][1]
+            else:
+                return self.__roundID + 1, self.__rounds[self.__roundID][2]
         else:
             return 0, "No Set Loaded"
 
@@ -355,14 +358,19 @@ class AidController:
     def unload(self):
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
             self.__bigPictureDisplay.unload()
+        self.__hostAidDisplay.setLabel("No Aid Available")
 
     def load(self, file):
         if not path.isfile(file):
             messagebox.showerror("File not Found", f"File {file} is missing")
+            self.__hostAidDisplay.setLabel("No Aid Available")
             return
 
+        self.__hostAidDisplay.setLabel(file)
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
             self.__bigPictureDisplay.load(file)
+        else:
+            self.__hostAidDisplay.setLabel("Open Big Picture Display to use Question Aids")
 
     def hide(self):
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():

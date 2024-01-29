@@ -188,6 +188,9 @@ class HostAidDisplay(ctk.CTkFrame):
     def __init__(self, master, showCallback, hideCallback, playCallback, pauseCallback, stopCallback, seekCallback, **kwargs):
         super().__init__(master, **kwargs)
         
+        self.pathLabel = ctk.CTkLabel(self, text="No Aid Available")
+        self.pathLabel.pack(padx=5, pady=5, fill="x")
+        
         self.visibilityFrame = ctk.CTkFrame(self)
         self.visibilityFrame.pack(padx=5, pady=5, fill="x")
         self.visibilityFrame.columnconfigure((0, 1), weight=1)
@@ -217,6 +220,9 @@ class HostAidDisplay(ctk.CTkFrame):
             self.seekCallback(value)
         except ValueError:
             messagebox.showerror("Value Error", "Time must be a number (integer or decimal)")
+
+    def setLabel(self, text):
+        self.pathLabel.configure(text=text)
 
 class BigPictureAidDisplay(ctk.CTkFrame):
     def __init__(self, master=None, **kwargs):
@@ -334,6 +340,8 @@ class BigPicture(ctk.CTkToplevel):
     def updateTitle(self, title, subtitle):
         self.titleLabel.configure(text=title)
         self.subtitleLabel.configure(text=subtitle)
+        
+        self.displayTitle()
         
     def getTitle(self):
         return self.titleLabel.cget("text")
