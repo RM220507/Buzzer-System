@@ -238,6 +238,32 @@
                         </layout>
                       </object>
                     </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlClosedIdentifyTeam" named="True">
+                        <property name="command" type="command" cbtype="simple">buzzerIdentifyTeam</property>
+                        <property name="text" translatable="yes">Identify Team</property>
+                        <layout manager="pack">
+                          <property name="expand">true</property>
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">left</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlClosedStopIdentifyButton" named="True">
+                        <property name="command" type="command" cbtype="simple">buzzerStopIdentifyTeam</property>
+                        <property name="text" translatable="yes">Stop Identify</property>
+                        <layout manager="pack">
+                          <property name="expand">true</property>
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">left</property>
+                        </layout>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>

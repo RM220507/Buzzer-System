@@ -32,6 +32,7 @@ class CommandID:
     LIGHT_SET = 70
     IDENTIFY = 75
     NOT_NEEDED = 80
+    IDENTIFY_TEAM = 85
 
 class Sound:
     INCORRECT = mixer.Sound("assets/sounds/incorrect.mp3")
@@ -43,8 +44,11 @@ class Sound:
     TROMBONE = mixer.Sound("assets/sounds/trombone_sad.mp3")
     AWFUL_JOKE = mixer.Sound("assets/sounds/ba_bum_tss.mp3")
     DRUMROLL = mixer.Sound("assets/sounds/drumroll.mp3")
+    
+    THEME = mixer.Sound("assets/sounds/theme.mp3")
 
     NAME_ASSIGNMENT = {
+        "Theme" : THEME,
         "Buzzer": BUZZED,
         "Correct": CORRECT,
         "Incorrect": INCORRECT,
@@ -923,7 +927,19 @@ class BuzzerControlApp:
 
     def buzzerIdentify(self, buzzerID):
         self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
+        
+    def buzzerIdentifyTeam(self):
+        selectValue = self.builder.get_object(
+            "buzzerControlClosedTeamSelect").get()
+        if selectValue == "CTkOptionMenu":
+            return
 
+        teamID = int(selectValue.split(" - ")[0])
+        self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} {teamID}")
+        
+    def buzzerStopIdentifyTeam(self):
+        self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} 255")
+        
     def buzzerFuncResend(self):
         commands = self.__teamController.getCommands()
         self.__serialController.writeLine(";".join(commands))

@@ -29,7 +29,7 @@ class BuzzerController:
                     else:
                         self.sendMsg([55, radioData[1]])
 
-            #! check for MACROS
+            # check for MACROS
             if button_a.is_pressed():
                 if self.__lastCommand != "":
                     self.execute(self.__lastCommand)

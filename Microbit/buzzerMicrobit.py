@@ -138,6 +138,11 @@ class Buzzer:
                     if radioData[1] == self.__teamID and len(radioData) == 14: # input is received as a list of integers (which are sorted into 4 RGB triplets)
                         self.__colorProfile = ColorProfile(list(map(int, radioData[2:5])), list(map(int, radioData[5:8])), list(map(int, radioData[8:11])), list(map(int, radioData[11:14])))
                         self.updatePixels()
+                elif radioData[0] == 85:
+                    if radioData[1] == self.__teamID:
+                        self.setActive()
+                    else:
+                        self.close()
 
             if radioData[0] == 40: # toggle whether the neopixels should display or not
                 self.toggleLight()
