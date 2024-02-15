@@ -9,7 +9,6 @@ from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostS
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
-import sys
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -145,14 +144,15 @@ class TeamController:
             commands.extend(newTeam.generateCommands())
             
             for buzzerID in team[2]: 
-                availableBuzzers.remove(buzzerID)
+                if buzzerID in availableBuzzers:
+                    availableBuzzers.remove(buzzerID)
 
             self.__teams.append(newTeam)
             
         notNeededFirst = [f"{CommandID.NOT_NEEDED} {buzzerID}" for buzzerID in availableBuzzers]
         notNeededFirst.extend(commands)
 
-        return notNeededFirst
+        return commands
 
     def getCommands(self):
         commands = []
@@ -707,6 +707,7 @@ class BuzzerControlApp:
     def nextQuestion(self):
         questionData = self.__questionManager.advanceQuestion()
         self.handleNextQuestion(questionData)
+        self.__serialController.writeLine(f"{CommandID.RESET_LOCK}")
 
     def handleNextQuestion(self, questionData):
         self.clearBuzzerAliasLabel()
@@ -786,6 +787,13 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
 
     def buzzerOpenAll(self):
+        self.__serialController.writeLine(f"{CommandID.OPEN}")
+        self.showBuzzerOpenFrame()
+        self.clearBuzzerAliasLabel()
+        self.__teamController.clearActive()
+        
+    def buzzerReopenAll(self):
+        self.answeredIncorrect()
         self.__serialController.writeLine(f"{CommandID.OPEN}")
         self.showBuzzerOpenFrame()
         self.clearBuzzerAliasLabel()
@@ -926,6 +934,7 @@ class BuzzerControlApp:
             self.bigPicture.updateBuzzerAlias("")
 
     def buzzerIdentify(self, buzzerID):
+        ##!
         self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
         
     def buzzerIdentifyTeam(self):

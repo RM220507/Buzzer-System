@@ -12,10 +12,10 @@ class BuzzerController:
 
         self.__waitingForBuzz = False
         self.__lastCommand = ""
-    
+
     def sendMsg(self, array):
         radio.send_bytes(bytes(array))
-    
+
     def mainloop(self):
         serialData = ""
         while True:
@@ -29,26 +29,41 @@ class BuzzerController:
                     else:
                         self.sendMsg([55, radioData[1]])
 
-            # check for MACROS
+            #! check for MACROS
             if button_a.is_pressed():
                 if self.__lastCommand != "":
                     self.execute(self.__lastCommand)
                     time.sleep(0.1)
+            """
+            elif pin0.read_digital():
+                print("macro 0")
+            elif pin1.read_digital():
+                print("macro 1")
+            elif pin8.read_digital():
+                print("macro 2")
+            elif pin2.read_digital():
+                print("macro 3")
+            elif pin16.read_digital():
+                print("macro 4")
+            elif pin19.read_digital():
+                print("macro 5")
+            """
 
             # check serial data for command
             newByte = uart.read(1)
             if newByte is None:
                 continue
-            
-            newChar = str(newByte, "UTF-8")
+
+            newChar = str(newByte, "utf-8")
             if newChar == "\n":
                 self.__lastCommand = serialData
                 self.execute(serialData)
                 serialData = ""
             else:
                 serialData += newChar
-                
+
     def execute(self, serialData):
+        print(serialData)
         commands = serialData.split(";")
         for command in commands:
             try:
@@ -56,11 +71,11 @@ class BuzzerController:
             except ValueError:
                 continue
             self.sendMsg(commandArray)
-            
+
             if commandArray[0] == 10 or commandArray[0] == 25 or commandArray[0] == 30 or commandArray[0] == 35:
                 self.__waitingForBuzz = True
             elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75:
                 self.__waitingForBuzz = False
-                
+
 controller = BuzzerController()
 controller.mainloop()

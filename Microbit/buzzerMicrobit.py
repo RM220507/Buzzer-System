@@ -164,6 +164,6 @@ class Buzzer:
                     self.__teamID = None
                     self.updatePixels()
 
-buzzer = Buzzer(0, pin1, pin0, 7) # setup buzzer object
+buzzer = Buzzer(4, pin1, pin0, 7) # setup buzzer object
 
 buzzer.mainloop() # run main event loop
