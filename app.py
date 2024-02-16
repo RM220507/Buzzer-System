@@ -9,6 +9,7 @@ from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostS
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
+from time import sleep
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -277,7 +278,7 @@ class QuestionManager:
         self.__rounds = self.__cursor.fetchall()
         self.__roundID = 0
 
-        self.__setInfo = (setName[0][0], setName[0][1], len(self.__rounds))
+        self.__setInfo = (setName[0], setName[1], len(self.__rounds))
 
         self.getQuestions()
         
@@ -689,7 +690,22 @@ class BuzzerControlApp:
             self.builder.get_object(
                 "buzzerControlClosedTeamSelect").set(teamData[0])
 
-            self.__serialController.writeLine(";".join(commands))
+            commandString = ";".join(commands)
+            if len(commandString) > 50:              
+                separatedCommands = [commands[0]]
+                currentIndex = 0
+                for command in commands[1:]:
+                    if len(separatedCommands[currentIndex]) + len(command) + 1 > 50:
+                        currentIndex += 1
+                        separatedCommands.append(command)
+                    else:
+                        separatedCommands[currentIndex] += f";{command}"
+                        
+                for smallCommand in separatedCommands:
+                    self.__serialController.writeLine(smallCommand)
+                    sleep(0.1)
+            else:
+                self.__serialController.writeLine(commandString)
 
         self.__scoreboardWidget.updateValues(self.__teamController.teams)
 
@@ -794,10 +810,7 @@ class BuzzerControlApp:
         
     def buzzerReopenAll(self):
         self.answeredIncorrect()
-        self.__serialController.writeLine(f"{CommandID.OPEN}")
-        self.showBuzzerOpenFrame()
-        self.clearBuzzerAliasLabel()
-        self.__teamController.clearActive()
+        self.buzzerOpenAll()
 
     def openBigPicture(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
@@ -934,7 +947,6 @@ class BuzzerControlApp:
             self.bigPicture.updateBuzzerAlias("")
 
     def buzzerIdentify(self, buzzerID):
-        ##!
         self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
         
     def buzzerIdentifyTeam(self):

@@ -550,6 +550,8 @@ class TeamSetup(ctk.CTkScrollableFrame):
             for buzzer in team[2]:
                 self.__buzzerElements[buzzer[0]].setInfo(buzzer[1], True, team[0])
         
+        self.saveTeams()
+        
 class TeamElement(ctk.CTkFrame):
     def __init__(self, master, loadColorCallback, saveColorCallback, **kwargs):
         super().__init__(master, **kwargs)
