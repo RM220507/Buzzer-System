@@ -9,7 +9,9 @@ from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostS
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
+import tkinter as tk
 from time import sleep
+
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -262,7 +264,7 @@ class QuestionManager:
         self.__setLoaded = False
 
     def getSets(self):
-        self.__cursor.execute("SELECT ID, Name FROM QuestionSet")
+        self.__cursor.execute("SELECT ID, TechName FROM QuestionSet")
         setList = self.__cursor.fetchall()
         return [f"{entry[0]} - {entry[1]}" for entry in setList]
 
@@ -270,7 +272,7 @@ class QuestionManager:
         self.__setLoaded = True
 
         self.__cursor.execute(
-            "SELECT Name, Subtitle FROM QuestionSet WHERE ID = ?", (ID,))
+            "SELECT Name, Subtitle, TechName FROM QuestionSet WHERE ID = ?", (ID,))
         setName = self.__cursor.fetchone()
 
         self.__cursor.execute(
@@ -278,7 +280,7 @@ class QuestionManager:
         self.__rounds = self.__cursor.fetchall()
         self.__roundID = 0
 
-        self.__setInfo = (setName[0], setName[1], len(self.__rounds))
+        self.__setInfo = (setName[0], setName[1], len(self.__rounds), setName[2])
 
         self.getQuestions()
         
@@ -496,6 +498,7 @@ class BuzzerControlApp:
             "currentQuestionAnswerLabel").configure(wraplength=800)
         builder.get_object(
             "currentQuestionNotesLabel").configure(wraplength=800)
+        self.builder.get_object("questionSetLabel").configure(wraplength=800)
         
         builder.get_object(
             "buzzerControlClosedTeamSelect").set("")
@@ -558,17 +561,23 @@ class BuzzerControlApp:
 
         setInfo = self.__questionManager.loadSet(setID)
 
-        self.builder.get_object("questionSetLabel").configure(text=setInfo[0])
-
+        self.builder.get_object("questionSetLabel").configure(text=f"{setInfo[3]} - {setInfo[0]}")
         self.updateRoundLabel()
         self.updateQuestionLabels(self.__questionManager.currentQuestion)
 
         self.buzzerClose()
         self.showBuzzerAdvanceFrame()
 
+        if self.builder.get_object("bigPictureConfTitleEntry").get() == "":
+            self.builder.get_object("bigPictureConfTitleEntry").delete(0, tk.END)
+            self.builder.get_object("bigPictureConfSubtitleEntry").delete(0, tk.END)
+            
+            self.builder.get_object("bigPictureConfTitleEntry").insert(0, setInfo[0])
+            self.builder.get_object("bigPictureConfSubtitleEntry").insert(0, setInfo[1])
+            
+
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            if self.bigPicture.getTitle() == "":
-                self.bigPicture.updateTitle(setInfo[0], setInfo[1])
+            self.setBigPictureTitle()
             self.bigPicture.displayTitle()
 
     def loadQuestionSetPrompt(self):
@@ -737,6 +746,8 @@ class BuzzerControlApp:
             self.showBigPictureBlank()
             self.showBuzzerAdvanceFrame()
         elif questionData[6] == 2:
+            roundData = self.__questionManager.currentRound
+            self.updateRoundLabel()
             self.showBigPictureRound()
             self.showBuzzerAdvanceRoundFrame()
 

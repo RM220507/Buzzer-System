@@ -94,6 +94,9 @@ class HostScoreboard(ctk.CTkFrame):
         
         ctk.CTkButton(self.manualControlFrame, text="+", command=lambda: self.changeScore(True)).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkButton(self.manualControlFrame, text="-", command=lambda: self.changeScore(False)).grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        
+        ctk.CTkButton(self.manualControlFrame, text="+ 10", command=lambda: self.changeScoreFixed(10, True)).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(self.manualControlFrame, text="+ 5", command=lambda: self.changeScoreFixed(5, True)).grid(row=1, column=2, padx=5, pady=5, sticky="ew")
 
         self.scoreboard = Scoreboard(self, False)
         self.scoreboard.pack(padx=5, pady=5, expand=True, fill="both")
@@ -112,11 +115,20 @@ class HostScoreboard(ctk.CTkFrame):
                 self.__teamController.applyScore(teamID, int(amount))
             else:
                 self.__teamController.applyPenalty(teamID, int(amount))
-                
-            self.manualControlTeamDropdown.set("Select Team")
-            self.manualControlAmountEntry.delete(0, tk.END)
         else:
             messagebox.showerror("Value Error", "Amount must be an integer")
+            
+    def changeScoreFixed(self, amount, bonus):
+        selectVal = self.manualControlTeamDropdown.get()
+        if selectVal == "Select Team":
+            messagebox.showerror("Value Error", "Team must be selected")
+            return
+        
+        teamID = int(selectVal.split(" - ")[0])
+        if bonus:
+            self.__teamController.applyScore(teamID, int(amount))
+        else:
+            self.__teamController.applyPenalty(teamID, int(amount))
             
     def updateValues(self, teams):
         self.manualControlTeamDropdown.configure(values=self.__teamController.getTeamStrings())

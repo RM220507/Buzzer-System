@@ -102,7 +102,7 @@
                   <object class="customtkinter.CTkLabel" id="currentQuestionLabel" named="True">
                     <property name="font">{Bahnschrift SemiBold} 36 {}</property>
                     <property name="justify">left</property>
-                    <property name="text" translatable="yes">No Question Available</property>
+                    <property name="text" translatable="yes">No Set Loaded</property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
@@ -116,7 +116,7 @@
                 <child>
                   <object class="customtkinter.CTkLabel" id="currentQuestionAnswerLabel" named="True">
                     <property name="font">{Bahnschrift SemiBold} 20 {}</property>
-                    <property name="text" translatable="yes"> </property>
+                    <property name="text" translatable="yes">Load a Question Set</property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
@@ -128,7 +128,7 @@
                 </child>
                 <child>
                   <object class="customtkinter.CTkLabel" id="currentQuestionNotesLabel" named="True">
-                    <property name="text" translatable="yes">Load a Question Set to get started</property>
+                    <property name="text" translatable="yes"> </property>
                     <layout manager="grid">
                       <property name="column">0</property>
                       <property name="padx">5</property>
