@@ -502,7 +502,7 @@ class BuzzerControlApp:
         builder.get_object(
             "buzzerControlClosedTeamSelect").configure(values=[])
 
-        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 25, self.setupTeams, self.loadColorPalettePrompt,
+        self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 16, self.setupTeams, self.loadColorPalettePrompt,
                                         self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
 

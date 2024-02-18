@@ -415,6 +415,8 @@ class Selector(ctk.CTkToplevel):
         
         ctk.CTkButton(self, text="Submit Choice", command=self.submit).pack(fill="x", padx=5, pady=5)
             
+        self.title("Selector")
+            
     def submit(self):
         value = self.get()
         self.destroy()
