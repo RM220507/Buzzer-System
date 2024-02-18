@@ -14,7 +14,10 @@ class BuzzerController:
         self.__lastCommand = ""
 
     def sendMsg(self, array):
-        radio.send_bytes(bytes(array))
+        try:
+            radio.send_bytes(bytes(array))
+        except ValueError as e:
+            print(f"ERROR: {e}.")
 
     def mainloop(self):
         serialData = ""
@@ -69,6 +72,7 @@ class BuzzerController:
             try:
                 commandArray = list(map(int, command.split()))
             except ValueError:
+                print("ERROR: Non integer value in command string.")
                 continue
             self.sendMsg(commandArray)
 

@@ -448,13 +448,13 @@ class SerialController(threading.Thread):
             self.attemptConnection()
 
     def run(self):
-        try:
-            while True:
+        while True:
+            try:
                 if self.checkBuffer():
                     data = self.getLine()
                     self.__readCallback(data)
-        except:
-            self.raiseException()
+            except:
+                self.raiseException()
 
 class Color:
     WHITE = "#FFF"
@@ -917,9 +917,9 @@ class BuzzerControlApp:
         self.__teamController.applyPenalty()
         self.nextQuestion()
 
-    def serialCallback(self, data):
-        print(data)
-        data = data.split()
+    def serialCallback(self, string):
+        print(string)
+        data = string.split()
         if len(data) >= 2 and data[0] == "buzzed" and data[1].isdigit():
             teamID, buzzerID = self.__teamController.fromPinIndex(int(data[1]))
             self.__teamController.setActive(teamID, buzzerID)
@@ -928,7 +928,9 @@ class BuzzerControlApp:
             mixer.Sound.play(Sound.BUZZED)
         elif len(data) >= 2 and data[0] == "macro" and data[1].isdigit():
             self.__macroController.execute(int(data[1]))
-
+        elif data[0] == "ERROR:":
+            messagebox.showerror("Command Error", string)
+            
     def updateBuzzerAliasLabel(self):
         teamAlias, buzzerAlias, activeColor = self.__teamController.getActiveAlias()
 

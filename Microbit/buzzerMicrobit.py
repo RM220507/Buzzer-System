@@ -1,8 +1,6 @@
 import radio #type: ignore
 from microbit import button_a, pin1, pin0 #type: ignore
 from neopixel import NeoPixel
-from micropython import const
-import time
 
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
