@@ -11,13 +11,17 @@ class BuzzerController:
         radio.on()
 
         self.__waitingForBuzz = False
+        self.__activeID = None
+        
         self.__lastCommand = ""
 
     def sendMsg(self, array):
         try:
-            radio.send_bytes(bytes(array))
-        except ValueError as e:
-            print(f"ERROR: {e}.")
+            for i in range(3):
+                radio.send_bytes(bytes(array))
+                time.sleep_ms(10)
+        except ValueError:
+            print("ERROR: Byte value out of range.")
 
     def mainloop(self):
         serialData = ""
@@ -27,8 +31,14 @@ class BuzzerController:
             if radioData:
                 if int(radioData[0]) == 50:
                     if self.__waitingForBuzz:
-                        self.__waitingForBuzz = False
-                        print("buzzed", str(radioData[1]))
+                        if self.__activeID is None:
+                            self.__waitingForBuzz = False
+                            self.__activeID = int(radioData[1])
+                            print("buzzed", str(radioData[1]))
+                            
+                            self.sendMsg([50, int(radioData[1])])
+                        elif self.__activeID != int(radioData[1]):
+                            self.sendMsg([55, int(radioData[1])])
                     else:
                         self.sendMsg([55, radioData[1]])
 
@@ -37,20 +47,6 @@ class BuzzerController:
                 if self.__lastCommand != "":
                     self.execute(self.__lastCommand)
                     time.sleep(0.1)
-            """
-            elif pin0.read_digital():
-                print("macro 0")
-            elif pin1.read_digital():
-                print("macro 1")
-            elif pin8.read_digital():
-                print("macro 2")
-            elif pin2.read_digital():
-                print("macro 3")
-            elif pin16.read_digital():
-                print("macro 4")
-            elif pin19.read_digital():
-                print("macro 5")
-            """
 
             # check serial data for command
             newByte = uart.read(1)
@@ -74,11 +70,13 @@ class BuzzerController:
             except ValueError:
                 print("ERROR: Non integer value in command string.")
                 continue
+            
             self.sendMsg(commandArray)
 
             if commandArray[0] == 10 or commandArray[0] == 25 or commandArray[0] == 30 or commandArray[0] == 35:
                 self.__waitingForBuzz = True
-            elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75:
+                self.__activeID = None
+            elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75 or commandArray[0] == 85:
                 self.__waitingForBuzz = False
 
 controller = BuzzerController()

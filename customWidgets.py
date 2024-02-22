@@ -13,7 +13,7 @@ class Color:
     
 class Font:
     def __init__(self):
-        self.LARGE = ctk.CTkFont("Bahnschrift Semibold", 72, "bold", "roman")
+        self.LARGE = ctk.CTkFont("Bahnschrift Semibold", 65, "bold", "roman")
         self.SMALL = ctk.CTkFont("Bahnschrift Semibold", 36, "bold", "roman")
     
 class MacroController(ctk.CTkFrame):
@@ -304,7 +304,7 @@ class BigPicture(ctk.CTkToplevel):
         # QUESTION FRAME
         self.questionFrame = ctk.CTkFrame(self, bg_color=Color.BLACK, corner_radius=0, fg_color=Color.BLACK)
         
-        self.questionLabel = ctk.CTkLabel(self.questionFrame, text="", font=fonts.LARGE, wraplength=1500, text_color=Color.WHITE)
+        self.questionLabel = ctk.CTkLabel(self.questionFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
         self.questionLabel.pack(expand=True, side="top")
         
         self.aidDisplay = BigPictureAidDisplay(self.questionFrame)
@@ -316,10 +316,10 @@ class BigPicture(ctk.CTkToplevel):
         self.roundContainerFrame = ctk.CTkFrame(self.roundFrame, bg_color=Color.BLACK, fg_color=Color.BLACK)
         self.roundContainerFrame.pack(expand=True, side="top")
         
-        self.roundCountLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.SMALL, wraplength=1500, text_color=Color.WHITE)
+        self.roundCountLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.SMALL, wraplength=1000, text_color=Color.WHITE)
         self.roundCountLabel.pack(side="top")
         
-        self.roundNameLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.LARGE, wraplength=1500, text_color=Color.WHITE)
+        self.roundNameLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
         self.roundNameLabel.pack(expand=False, side="top")
         
         # TITLE FRAME
@@ -328,10 +328,10 @@ class BigPicture(ctk.CTkToplevel):
         self.titleContainerFrame = ctk.CTkFrame(self.titleFrame, bg_color=Color.BLACK, fg_color=Color.BLACK)
         self.titleContainerFrame.pack(expand=True, side="top")
 
-        self.titleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.LARGE, wraplength=1500, text_color=Color.WHITE)
+        self.titleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
         self.titleLabel.pack(expand=True, side="top")
         
-        self.subtitleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.SMALL, wraplength=1500, text_color=Color.WHITE)
+        self.subtitleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.SMALL, wraplength=1000, text_color=Color.WHITE)
         self.subtitleLabel.pack(side="top")
         
         # SCOREBOARD FRAME
@@ -576,7 +576,7 @@ class TeamElement(ctk.CTkFrame):
         self.__nameEntry = ctk.CTkEntry(self, placeholder_text="Alias")
         self.__nameEntry.pack(padx=5, pady=5, fill="x")
         
-        self.__inactiveButton = ctk.CTkButton(self, text="Inactive Colour", command=self.setInactiveColor, fg_color="#444444")
+        self.__inactiveButton = ctk.CTkButton(self, text="Inactive Colour", command=self.setInactiveColor, fg_color="#000000")
         self.__inactiveButton.pack(padx=5, pady=5, fill="x")
         
         self.__waitingButton = ctk.CTkButton(self, text="Waiting Colour", command=self.setWaitingColor, fg_color="#660066")

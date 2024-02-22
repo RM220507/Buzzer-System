@@ -126,7 +126,11 @@ class TeamController:
         for team in self.__teams:
             if team.teamID == self.__activeTeam:
                 teamAlias = team.alias
-                buzzerAlias = team.getBuzzer(self.__activeBuzzer).alias
+                
+                if self.__activeBuzzer == 255:
+                    buzzerAlias = "Team"
+                else:
+                    buzzerAlias = team.getBuzzer(self.__activeBuzzer).alias
                 activeColor = team.activeColor
                 break
 
@@ -331,9 +335,10 @@ class QuestionManager:
                 if self.__questionID >= len(self.__questions):
                     self.__roundID += 1
                     if self.__roundID >= len(self.__rounds):
+                        self.__roundID = len(self.__rounds) - 1
                         self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
                     else:
-                        self.__currentQuestion = ["Round Break", "", "", 0, 0, None, 2]
+                        self.__currentQuestion = ["Round Break", self.currentRound[1], "", 0, 0, None, 2]
                 else:
                     self.__currentQuestion = self.__questions[self.__questionID]
             elif self.__currentQuestion[6] == 2:
@@ -342,7 +347,8 @@ class QuestionManager:
                 else:
                     self.getQuestions()
             elif self.__currentQuestion[6] == 3:
-                self.__currentQuestion = ["Game End", "", "", 0, 0, None, 3]
+                self.__roundID = 0
+                self.getQuestions()
 
         return self.__currentQuestion
 
@@ -365,17 +371,19 @@ class AidController:
     def unload(self):
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
             self.__bigPictureDisplay.unload()
+            self.hide()
         self.__hostAidDisplay.setLabel("No Aid Available")
 
     def load(self, file):
         if not path.isfile(file):
             messagebox.showerror("File not Found", f"File {file} is missing")
-            self.__hostAidDisplay.setLabel("No Aid Available")
+            self.unload()
             return
 
         self.__hostAidDisplay.setLabel(file)
         if self.__bigPictureDisplay is not None and self.__bigPictureDisplay.winfo_exists():
             self.__bigPictureDisplay.load(file)
+            self.show()
         else:
             self.__hostAidDisplay.setLabel("Open Big Picture Display to use Question Aids")
 
@@ -712,7 +720,7 @@ class BuzzerControlApp:
                         
                 for smallCommand in separatedCommands:
                     self.__serialController.writeLine(smallCommand)
-                    sleep(0.1)
+                    sleep(0.5)
             else:
                 self.__serialController.writeLine(commandString)
 
@@ -742,14 +750,16 @@ class BuzzerControlApp:
 
         if questionData[6] == 0:
             self.showBigPictureQuestion()
+            self.updateRoundLabel()
         elif questionData[6] == 1:
             self.showBigPictureBlank()
             self.showBuzzerAdvanceFrame()
         elif questionData[6] == 2:
-            roundData = self.__questionManager.currentRound
             self.updateRoundLabel()
             self.showBigPictureRound()
             self.showBuzzerAdvanceRoundFrame()
+        elif questionData[6] == 3:
+            self.updateRoundLabel()
 
     def updateQuestionLabels(self, questionData):
         self.builder.get_object("questionPointsLabel").configure(
@@ -965,11 +975,15 @@ class BuzzerControlApp:
     def buzzerIdentifyTeam(self):
         selectValue = self.builder.get_object(
             "buzzerControlClosedTeamSelect").get()
-        if selectValue == "CTkOptionMenu":
+        if selectValue == "CTkOptionMenu" or selectValue == "":
             return
 
         teamID = int(selectValue.split(" - ")[0])
         self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} {teamID}")
+        
+        self.__teamController.setActive(teamID, 255)
+        self.updateBuzzerAliasLabel()
+        self.showBuzzerBuzzedFrame()
         
     def buzzerStopIdentifyTeam(self):
         self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} 255")
