@@ -1,6 +1,7 @@
 import radio #type: ignore
 from microbit import button_a, pin1, pin0 #type: ignore
 from neopixel import NeoPixel
+from time import sleep_ms
 
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -100,8 +101,11 @@ class Buzzer:
         while True:
             if (button_a.is_pressed() or self.__buttonPin.read_digital()) and self.__state == "waiting": # if the button is pressed and the state is waiting, the buzzer has been pressed and should activate
                 self.setActive()
-                radio.send_bytes(bytes([50, self.__ID])) # broadcast event to controller and other buzzers (to tell them to deactive)
-
+                
+                for i in range(3):
+                    radio.send_bytes(bytes([50, self.__ID])) # broadcast event to controller and other buzzers (to tell them to deactive)
+                    sleep_ms(10)
+                    
             radioData = radio.receive_bytes()
             if not radioData:
                 continue
@@ -141,6 +145,8 @@ class Buzzer:
                         self.setActive()
                     else:
                         self.close()
+                elif radioData[0] == 90:
+                    self.setActive()
 
             if radioData[0] == 40: # toggle whether the neopixels should display or not
                 self.toggleLight()

@@ -441,7 +441,7 @@ class Selector(ctk.CTkToplevel):
         return self.__options.get()
 
 class TeamSetup(ctk.CTkScrollableFrame):
-    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, buzzerIdentifyCallback, **kwargs):
+    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, buzzerIdentifyCallback, identifyAllCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.rowconfigure(0, weight=1)
@@ -463,6 +463,8 @@ class TeamSetup(ctk.CTkScrollableFrame):
         ctk.CTkButton(self.__buttonFrame, text="Send Configuration to Device", command=self.setConfiguration).grid(row=0, column=0, padx=5, pady=5, columnspan=2, sticky="EW")
         ctk.CTkButton(self.__buttonFrame, text="Save to Database", command=lambda: saveConfigCallback(self.getConfig())).grid(row=1, column=0, padx=5, pady=5, sticky="EW")
         ctk.CTkButton(self.__buttonFrame, text="Load from Database", command=loadConfigCallback).grid(row=1, column=1, padx=5, pady=5, sticky="EW")        
+        
+        ctk.CTkButton(self.__buttonFrame, text="Identify All", command=identifyAllCallback).grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="EW")
         ctk.CTkButton(self.__buttonFrame, text="Stop Identify", command=lambda: buzzerIdentifyCallback(255)).grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="EW")        
         
         self.__buzzerFrame = ctk.CTkFrame(self)
@@ -658,7 +660,9 @@ class BuzzerElement(ctk.CTkFrame):
         self.__aliasEntry = ctk.CTkEntry(self, placeholder_text="Alias")
         self.__aliasEntry.grid(row=1, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         
-        self.__teamDropdown = ctk.CTkOptionMenu(self, values=[])
+        self.__teamList = []
+        
+        self.__teamDropdown = ctk.CTkOptionMenu(self, values=self.__teamList)
         self.__teamDropdown.grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
         
         ctk.CTkButton(self, text="Identify", command=lambda: identifyCallback(self.__index)).grid(row=3, column=0, padx=5, pady=5, columnspan=2, sticky="ew")
@@ -667,6 +671,13 @@ class BuzzerElement(ctk.CTkFrame):
         self.__teamDropdown.set("")
         
     def setTeamList(self, teams):
+        currentTeam = self.getTeam()
+        if currentTeam != "" and currentTeam in self.__teamList:
+            teamID = self.__teamList.index(currentTeam)
+            if teamID < len(teams):
+                self.__teamDropdown.set(teams[teamID])
+        
+        self.__teamList = teams
         self.__teamDropdown.configure(values=teams)
         
     def getTeam(self):

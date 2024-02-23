@@ -12,7 +12,6 @@ from tkinter import messagebox
 import tkinter as tk
 from time import sleep
 
-
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
 
@@ -35,6 +34,7 @@ class CommandID:
     IDENTIFY = 75
     NOT_NEEDED = 80
     IDENTIFY_TEAM = 85
+    IDENTIFY_ALL = 90
 
 class Sound:
     INCORRECT = mixer.Sound("assets/sounds/incorrect.mp3")
@@ -514,7 +514,7 @@ class BuzzerControlApp:
             "buzzerControlClosedTeamSelect").configure(values=[])
 
         self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 16, self.setupTeams, self.loadColorPalettePrompt,
-                                        self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify)
+                                        self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify, self.buzzerIdentifyAll)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__scoreboardWidget = HostScoreboard(
@@ -1000,6 +1000,9 @@ class BuzzerControlApp:
 
     def buzzerFuncLightUpdate(self):
         self.__serialController.writeLine(f"{CommandID.LIGHT_UPDATE}")
+        
+    def buzzerIdentifyAll(self):
+        self.__serialController.writeLine(f"{CommandID.IDENTIFY_ALL}")
 
 
 if __name__ == "__main__":
