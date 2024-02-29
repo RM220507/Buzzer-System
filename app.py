@@ -266,6 +266,7 @@ class QuestionManager:
         self.__currentQuestion = ["No Set Loaded", "", "", 0, 0, None, 1]
 
         self.__setLoaded = False
+        self.__setID = None
 
     def getSets(self):
         self.__cursor.execute("SELECT ID, TechName FROM QuestionSet")
@@ -274,6 +275,8 @@ class QuestionManager:
 
     def loadSet(self, ID):
         self.__setLoaded = True
+        
+        self.__setID = ID
 
         self.__cursor.execute(
             "SELECT Name, Subtitle, TechName FROM QuestionSet WHERE ID = ?", (ID,))
@@ -283,7 +286,7 @@ class QuestionManager:
             "SELECT ID, Name, DisplayName FROM Round, RoundSet WHERE Round.ID = RoundSet.RoundID AND RoundSet.SetID = ? ORDER BY Position", (ID,))
         self.__rounds = self.__cursor.fetchall()
         self.__roundID = 0
-
+        
         self.__setInfo = (setName[0], setName[1], len(self.__rounds), setName[2])
 
         self.getQuestions()
@@ -292,6 +295,13 @@ class QuestionManager:
         self.__questionID = -1
 
         return self.__setInfo
+    
+    def restartSet(self):
+        if self.__setID is None:
+            return
+        
+        self.loadSet(self.__setID)
+        return self.__currentQuestion
 
     @property
     def currentRound(self):
@@ -649,7 +659,6 @@ class BuzzerControlApp:
                 "SELECT ID, Alias FROM BuzzerTeam WHERE TeamID = ?", (team[0],))
             teamBuzzers = self.__cursor.fetchall()
 
-            # could be used for color palette later
             teamData = (team[1], None, teamBuzzers)
             configData.append(teamData)
 
@@ -725,6 +734,10 @@ class BuzzerControlApp:
                 self.__serialController.writeLine(commandString)
 
         self.__scoreboardWidget.updateValues(self.__teamController.teams)
+        
+    def restartSet(self):
+        nextQ = self.__questionManager.restartSet()
+        self.handleNextQuestion(nextQ)
 
     def updateRoundLabel(self):
         currentRound = self.__questionManager.currentRound
