@@ -470,17 +470,17 @@
                       </object>
                     </child>
                     <child>
-                      <object class="customtkinter.CTkButton" id="buzzerControlAdvanceRoundRestartSet" named="True">
-                        <property name="command" type="command" cbtype="simple">skipRound</property>
+                      <object class="customtkinter.CTkButton" id="buzzerControlAdvanceRoundRestartSetBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">restartSet</property>
                         <property name="compound">top</property>
                         <property name="hover">True</property>
-                        <property name="text" translatable="yes">Skip Round</property>
+                        <property name="text" translatable="yes">Restart Set</property>
                         <layout manager="pack">
                           <property name="expand">true</property>
                           <property name="fill">x</property>
                           <property name="padx">5</property>
                           <property name="pady">5</property>
-                          <property name="side">right</property>
+                          <property name="side">top</property>
                         </layout>
                       </object>
                     </child>

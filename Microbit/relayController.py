@@ -39,8 +39,6 @@ class BuzzerController:
                             self.sendMsg([50, int(radioData[1])])
                         elif self.__activeID != int(radioData[1]):
                             self.sendMsg([55, int(radioData[1])])
-                    else:
-                        self.sendMsg([55, radioData[1]])
 
             #! check for MACROS
             if button_a.is_pressed():

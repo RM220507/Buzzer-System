@@ -465,7 +465,7 @@ class TeamSetup(ctk.CTkScrollableFrame):
         ctk.CTkButton(self.__buttonFrame, text="Load from Database", command=loadConfigCallback).grid(row=1, column=1, padx=5, pady=5, sticky="EW")        
         
         ctk.CTkButton(self.__buttonFrame, text="Identify All", command=identifyAllCallback).grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="EW")
-        ctk.CTkButton(self.__buttonFrame, text="Stop Identify", command=lambda: buzzerIdentifyCallback(255)).grid(row=2, column=0, padx=5, pady=5, columnspan=2, sticky="EW")        
+        ctk.CTkButton(self.__buttonFrame, text="Stop Identify", command=lambda: buzzerIdentifyCallback(255)).grid(row=3, column=0, padx=5, pady=5, columnspan=2, sticky="EW")        
         
         self.__buzzerFrame = ctk.CTkFrame(self)
         self.__buzzerFrame.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
