@@ -120,26 +120,30 @@ class TeamController:
         self.__activeBuzzer = None
 
     def getActiveAlias(self):
-        teamAlias = ""
-        buzzerAlias = ""
+        teamAlias = "Unaffiliated"
+        buzzerAlias = "Host"
         activeColor = "#FFFFFF"
+        
         for team in self.__teams:
             if team.teamID == self.__activeTeam:
                 teamAlias = team.alias
                 
-                if self.__activeBuzzer == 255:
+                if self.__activeBuzzer == -1:
                     buzzerAlias = "Team"
+                elif self.__activeBuzzer == -2:
+                    buzzerAlias = "Host"
                 else:
                     buzzerAlias = team.getBuzzer(self.__activeBuzzer).alias
                 activeColor = team.activeColor
                 break
-
+        
         return teamAlias, buzzerAlias, activeColor
 
     def getActivePinIndex(self):
         for team in self.__teams:
             if team.teamID == self.__activeTeam:
                 return team.getBuzzer(self.__activeBuzzer).pinIndex
+        return 255
 
     def setupTeams(self, teams):
         self.__teams = []
@@ -189,8 +193,8 @@ class Team:
         self.__ID = ID
         self.__alias = alias
 
-        self.__colorPalette = [Color.HEXtoRGB(col) for col in colorPalette]
-        self.__activeTextCol = colorPalette[2]
+        self.__colorPalette = [Color.HEXtoRGB(col) for col in colorPalette[:-1]]
+        self.__activeTextCol = colorPalette[4]
 
         self.score = 0
 
@@ -218,7 +222,7 @@ class Team:
                 f"{CommandID.TEAM_ASSIGNMENT} {buzzer.pinIndex} {self.__ID}")
 
         colorCommand = f"{CommandID.COLOR_PROFILE_ASSIGNMENT} {self.__ID} "
-        for color in self.__colorPalette:
+        for color in self.__colorPalette[:-1]:
             for val in color:
                 colorCommand += f"{val} "
         commands.append(colorCommand)
@@ -386,7 +390,7 @@ class AidController:
 
     def load(self, file):
         if not path.isfile(file):
-            messagebox.showerror("File not Found", f"File {file} is missing")
+            messagebox.showerror("File not Found", f"File {file} is missing.")
             self.unload()
             return
 
@@ -466,6 +470,8 @@ class SerialController(threading.Thread):
         )
         if askRetry:
             self.attemptConnection()
+        else:
+            app.destroy()
 
     def run(self):
         while True:
@@ -528,7 +534,7 @@ class BuzzerControlApp:
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__scoreboardWidget = HostScoreboard(
-            builder.get_object("scoreTab"), self.__teamController)
+            builder.get_object("scoreTab"), self.__teamController, self.showBigPictureScoreboard)
         self.__scoreboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__teamController.setScoreboards(self.__scoreboardWidget)
@@ -536,7 +542,9 @@ class BuzzerControlApp:
         self.__soundboardWidget = Soundboard(
             builder.get_object("soundboardTab"), Sound)
         self.__soundboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
-
+        
+        #! THE FOLLOWING COMMENT IS FOR USE WITH MACROS <- THESE HAVEN'T BEEN IMPLEMENTED YET, BUT WILL BE AT SOME POINT
+        """ #? RE-CREATE THE MACRO TAB WITH PYGUBU DESIGNER TO MAKE USE OF THIS
         commands = {
             "Host: Display Hosting Tab": lambda: self.builder.get_object("mainTabview").set("Hosting"),
             "Host: Display Big Picture Tab": lambda: self.builder.get_object("mainTabview").set("Big Picture"),
@@ -567,7 +575,7 @@ class BuzzerControlApp:
         }
         self.__macroController = MacroController(
             builder.get_object("macroTab"), commands, 6)
-        self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)
+        self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)"""
 
     def run(self):
         self.__serialController.start()
@@ -608,10 +616,10 @@ class BuzzerControlApp:
         paletteID = int(value.split()[0])
 
         self.__cursor.execute(
-            "SELECT InactiveColor, WaitingColor, ActiveColor, LockedColor FROM ColorPalette WHERE ID = ?", (paletteID,))
+            "SELECT InactiveColor, WaitingColor, ActiveColor, LockedColor, DisplayColor FROM ColorPalette WHERE ID = ?", (paletteID,))
         colorPalette = self.__cursor.fetchone()
 
-        teamElement.loadPalette(colorPalette)
+        teamElement.loadPalette(colorPalette, paletteID)
 
     def loadColorPalettePrompt(self, teamElement):
         self.__cursor.execute("SELECT ID, Name FROM ColorPalette")
@@ -624,18 +632,26 @@ class BuzzerControlApp:
     def saveColorPalette(self, teamElement):
         inputDialog = ctk.CTkInputDialog(
             title="Colour Palette Name", text="Name your Colour Palette")
-        name = inputDialog.get_input()[:30]  # type: ignore
+        
+        name = inputDialog.get_input()
+        if name != None or name == "":
+            name = name[:30]
+        else:
+            messagebox.showerror("Value Error", "No name was provided.")
 
-        inactiveColor, waitingColor, activeColor, lockedColor = teamElement.getColors()
+        inactiveColor, waitingColor, activeColor, lockedColor, displayColor, paletteID = teamElement.getColors()
 
         self.__cursor.execute(
             "SELECT 1 FROM ColorPalette WHERE Name = ?", (name,))
         if self.__cursor.fetchone():
-            self.__cursor.execute("UPDATE ColorPalette SET InactiveColor = ?, WaitingColor = ?, ActiveColor = ?, LockedColor = ? WHERE Name = ?", (
-                inactiveColor, waitingColor, activeColor, lockedColor, name))
+            if messagebox.askyesno("Overwrite Warning", "A Colour Palette with this name already exists. Overwrite it?"):
+                self.__cursor.execute("UPDATE ColorPalette SET InactiveColor = ?, WaitingColor = ?, ActiveColor = ?, LockedColor = ?, DisplayColor = ?, WHERE Name = ?", (
+                    inactiveColor, waitingColor, activeColor, lockedColor, displayColor, name))
+            else:
+                return
         else:
-            self.__cursor.execute("INSERT INTO ColorPalette (Name, InactiveColor, WaitingColor, ActiveColor, LockedColor) VALUES (?, ?, ?, ?, ?)", (
-                name, inactiveColor, waitingColor, activeColor, lockedColor))
+            self.__cursor.execute("INSERT INTO ColorPalette (Name, InactiveColor, WaitingColor, ActiveColor, LockedColor, DisplayColor) VALUES (?, ?, ?, ?, ?, ?)", (
+                name, inactiveColor, waitingColor, activeColor, lockedColor, displayColor))
         self.__db.commit()  # type: ignore
 
     def loadTeamConfigurationPrompt(self):
@@ -650,16 +666,24 @@ class BuzzerControlApp:
         configID = int(value.split()[0])
 
         self.__cursor.execute(
-            "SELECT ID, Name FROM TeamConfig WHERE ConfigID = ?", (configID,))
+            "SELECT ID, Name, PaletteID FROM TeamConfig WHERE ConfigID = ?", (configID,))
         teams = self.__cursor.fetchall()
 
         configData = []
         for team in teams:
+            if team[2] is None:
+                paletteID = None
+                colors = None
+            else:
+                self.__cursor.execute("SELECT InactiveColor, WaitingColor, ActiveColor, LockedColor, DisplayColor FROM ColorPalette WHERE ID = ?", (team[2],))
+                colors = self.__cursor.fetchone()
+                paletteID = team[2]
+                
             self.__cursor.execute(
                 "SELECT ID, Alias FROM BuzzerTeam WHERE TeamID = ?", (team[0],))
             teamBuzzers = self.__cursor.fetchall()
 
-            teamData = (team[1], None, teamBuzzers)
+            teamData = (team[1], colors, paletteID, teamBuzzers)
             configData.append(teamData)
 
         self.__teamSetupWidget.loadConfig(configData)
@@ -667,22 +691,30 @@ class BuzzerControlApp:
     def saveTeamConfiguration(self, config):
         inputDialog = ctk.CTkInputDialog(
             title="Configuration Name", text="Name your Configuration")
-        name = inputDialog.get_input()[:30]  # type: ignore
+    
+        name = inputDialog.get_input()  # type: ignore
+        if name != None or name == "":
+            name = name[:30]
+        else:
+            messagebox.showerror("Value Error", "No name was provided.")
 
         self.__cursor.execute(
             "SELECT 1 FROM Configuration WHERE Name = ?", (name,))
         if self.__cursor.fetchone():
-            self.__cursor.execute(
-                "SELECT ID FROM Configuration WHERE Name = ?", (name,))
-            configID = self.__cursor.fetchone()[0]
+            if messagebox.askyesno("Overwrite Warning", "A Team Configuration with this name already exists. Overwrite it?"):
+                self.__cursor.execute(
+                    "SELECT ID FROM Configuration WHERE Name = ?", (name,))
+                configID = self.__cursor.fetchone()[0]
 
-            self.__cursor.execute(
-                "SELECT ID FROM TeamConfig WHERE ConfigID = ?", (configID,))
-            teamIDs = self.__cursor.fetchall()
-            self.__cursor.execute(
-                "DELETE FROM TeamConfig WHERE ConfigID = ?", (configID,))
-            self.__cursor.executemany(
-                "DELETE FROM BuzzerTeam WHERE TeamID = ?", teamIDs)
+                self.__cursor.execute(
+                    "SELECT ID FROM TeamConfig WHERE ConfigID = ?", (configID,))
+                teamIDs = self.__cursor.fetchall()
+                self.__cursor.execute(
+                    "DELETE FROM TeamConfig WHERE ConfigID = ?", (configID,))
+                self.__cursor.executemany(
+                    "DELETE FROM BuzzerTeam WHERE TeamID = ?", teamIDs)
+            else:
+                return
         else:
             self.__cursor.execute(
                 "INSERT INTO Configuration (Name) VALUES (?)", (name,))
@@ -691,12 +723,13 @@ class BuzzerControlApp:
             configID = self.__cursor.fetchone()[0]
 
         teams = config[0]
+        teamColors = config[2]
         buzzers = config[1]
 
         teamIDs = []
-        for team in teams:
+        for i, team in enumerate(teams):
             self.__cursor.execute(
-                "INSERT INTO TeamConfig (Name, ConfigID) VALUES (?, ?)", (team, configID))
+                "INSERT INTO TeamConfig (Name, ConfigID, PaletteID) VALUES (?, ?, ?)", (team, configID, teamColors[i]))
             self.__cursor.execute("SELECT last_insert_rowid() FROM TeamConfig")
             teamIDs.append(self.__cursor.fetchone()[0])
 
@@ -711,33 +744,42 @@ class BuzzerControlApp:
         teamData = self.__teamController.getTeamStrings()
         self.builder.get_object(
             "buzzerControlClosedTeamSelect").configure(values=teamData)
+
+        self.sendLongCommand(commands)
         
         if len(teamData) > 0:
             self.builder.get_object(
                 "buzzerControlClosedTeamSelect").set(teamData[0])
+            
+        self.__teamController.updateScoreboards()
+        messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
 
-            commandString = ";".join(commands)
-            if len(commandString) > 50:              
-                separatedCommands = [commands[0]]
-                currentIndex = 0
-                for command in commands[1:]:
-                    if len(separatedCommands[currentIndex]) + len(command) + 1 > 50:
-                        currentIndex += 1
-                        separatedCommands.append(command)
-                    else:
-                        separatedCommands[currentIndex] += f";{command}"
-                        
-                for smallCommand in separatedCommands:
-                    self.__serialController.writeLine(smallCommand)
-                    sleep(0.5)
-            else:
-                self.__serialController.writeLine(commandString)
-
-        self.__scoreboardWidget.updateValues(self.__teamController.teams)
+        #self.__scoreboardWidget.updateValues(self.__teamController.teams)
+    
+    def sendLongCommand(self, commands):
+        commandString = ";".join(commands)
+        if len(commandString) > 50:              
+            separatedCommands = [commands[0]]
+            currentIndex = 0
+            for command in commands[1:]:
+                if len(separatedCommands[currentIndex]) + len(command) + 1 > 50:
+                    currentIndex += 1
+                    separatedCommands.append(command)
+                else:
+                    separatedCommands[currentIndex] += f";{command}"
+                    
+            for smallCommand in separatedCommands:
+                self.__serialController.writeLine(smallCommand)
+                sleep(0.5)
+        else:
+            self.__serialController.writeLine(commandString)
         
     def restartSet(self):
         nextQ = self.__questionManager.restartSet()
         self.handleNextQuestion(nextQ)
+
+    def destroy(self):
+        self.builder.get_object("rootFrame").destroy()
 
     def updateRoundLabel(self):
         currentRound = self.__questionManager.currentRound
@@ -822,6 +864,10 @@ class BuzzerControlApp:
     def showBigPictureScoreboard(self):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
             self.bigPicture.displayScoreboard()
+            
+    def closeBigPicture(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.destroy()
 
     def skipQuestion(self):
         #mixer.Sound.play(Sound.INCORRECT)
@@ -909,7 +955,8 @@ class BuzzerControlApp:
     def buzzerOpenTeam(self):
         selectValue = self.builder.get_object(
             "buzzerControlClosedTeamSelect").get()
-        if selectValue == "CTkOptionMenu":
+        if selectValue == "CTkOptionMenu" or selectValue == "":
+            messagebox.showerror("Value Error", "Team must be selected.")
             return
 
         teamID = int(selectValue.split(" - ")[0])
@@ -951,19 +998,42 @@ class BuzzerControlApp:
         self.__teamController.applyPenalty()
         self.nextQuestion()
 
+    def hostBuzzerTeamPrompt(self):
+        configList = self.__teamController.getTeamStrings()
+        configList.append("255 - Unaffiliated")
+        self.selectTopLevel = Selector(
+            self.mainwindow, configList, self.hostBuzzerTeam)
+        
+    def hostBuzzerTeam(self, value):
+        teamID = int(value.split(" - ")[0])
+        
+        self.buzzed(teamID, -2)
+        
+    def buzzAsTeam(self):
+        self.__serialController.writeLine(f"{CommandID.BUZZED} 255")
+        self.hostBuzzerTeamPrompt()
+
     def serialCallback(self, string):
         print(string)
+        
         data = string.split()
         if len(data) >= 2 and data[0] == "buzzed" and data[1].isdigit():
-            teamID, buzzerID = self.__teamController.fromPinIndex(int(data[1]))
-            self.__teamController.setActive(teamID, buzzerID)
-            self.updateBuzzerAliasLabel()
-            self.showBuzzerBuzzedFrame()
-            mixer.Sound.play(Sound.BUZZED)
+            if int(data[1]) != 255:
+                teamID, buzzerID = self.__teamController.fromPinIndex(int(data[1]))
+                self.buzzed(teamID, buzzerID)
+            else:
+                self.hostBuzzerTeamPrompt()
         elif len(data) >= 2 and data[0] == "macro" and data[1].isdigit():
-            self.__macroController.execute(int(data[1]))
+            messagebox.showerror("Not Implemented Error", "This version of the Control App does not support the use of macros.")
+            #self.__macroController.execute(int(data[1])) #! MORE MACRO RELATED THINGS
         elif data[0] == "ERROR:":
             messagebox.showerror("Command Error", string)
+            
+    def buzzed(self, teamID, buzzerID):
+        self.__teamController.setActive(teamID, buzzerID)
+        self.updateBuzzerAliasLabel()
+        self.showBuzzerBuzzedFrame()
+        mixer.Sound.play(Sound.BUZZED)
             
     def updateBuzzerAliasLabel(self):
         teamAlias, buzzerAlias, activeColor = self.__teamController.getActiveAlias()
@@ -989,12 +1059,13 @@ class BuzzerControlApp:
         selectValue = self.builder.get_object(
             "buzzerControlClosedTeamSelect").get()
         if selectValue == "CTkOptionMenu" or selectValue == "":
+            messagebox.showerror("Value Error", "Team must be selected.")
             return
 
         teamID = int(selectValue.split(" - ")[0])
         self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} {teamID}")
         
-        self.__teamController.setActive(teamID, 255)
+        self.__teamController.setActive(teamID, -1)
         self.updateBuzzerAliasLabel()
         self.showBuzzerBuzzedFrame()
         
@@ -1003,7 +1074,7 @@ class BuzzerControlApp:
         
     def buzzerFuncResend(self):
         commands = self.__teamController.getCommands()
-        self.__serialController.writeLine(";".join(commands))
+        self.sendLongCommand(commands)
 
     def buzzerFuncLightOn(self):
         self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 1")

@@ -74,7 +74,7 @@ class BuzzerController:
             if commandArray[0] == 10 or commandArray[0] == 25 or commandArray[0] == 30 or commandArray[0] == 35:
                 self.__waitingForBuzz = True
                 self.__activeID = None
-            elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75 or commandArray[0] == 85:
+            elif commandArray[0] == 15 or commandArray[0] == 20 or commandArray[0] == 60 or commandArray[0] == 75 or commandArray[0] == 85 or commandArray[0] == 50:
                 self.__waitingForBuzz = False
 
 controller = BuzzerController()
