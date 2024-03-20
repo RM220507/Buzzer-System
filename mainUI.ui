@@ -697,6 +697,224 @@
                 </child>
               </object>
             </child>
+            <child>
+              <object class="customtkinter.CTkFrame" id="bigPictureConfFrame" named="True">
+                <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
+                  <property name="side">top</property>
+                </layout>
+                <containerlayout manager="grid">
+                  <property type="col" id="0" name="weight">1</property>
+                  <property type="col" id="1" name="weight">4</property>
+                </containerlayout>
+                <child>
+                  <object class="customtkinter.CTkFrame" id="bigPictureConfSaveFrame" named="True">
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="columnspan">2</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                    <containerlayout manager="grid">
+                      <property name="anchor">n</property>
+                      <property type="col" id="0" name="weight">1</property>
+                    </containerlayout>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureConfSaveBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">bigPictureConfSave</property>
+                        <property name="text" translatable="yes">Save Configuration</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="columnspan">2</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureConfSaveDBBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">bigPictureConfSaveDB</property>
+                        <property name="text" translatable="yes">Save to Database</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureConfLoadDBBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">bigPictureConfLoadDBPrompt</property>
+                        <property name="text" translatable="yes">Load from Database</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkFrame" id="bigPictureConfAliasFrame" named="True">
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">1</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                    <child>
+                      <object class="customtkinter.CTkCheckBox" id="bigPictureConfAliasDisplayCheck" named="True">
+                        <property name="text" translatable="yes">Display Buzzer</property>
+                        <layout manager="pack">
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkCheckBox" id="bigPictureConfAliasDisplayTeamCheck" named="True">
+                        <property name="text" translatable="yes">Display Team</property>
+                        <layout manager="pack">
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkCheckBox" id="bigPictureConfAliasDisplayNameCheck" named="True">
+                        <property name="text" translatable="yes">Display Name</property>
+                        <layout manager="pack">
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkFrame" id="bigPictureConfSequencingFrame" named="True">
+                    <layout manager="grid">
+                      <property name="column">1</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">1</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqSetLoadLabel" named="True">
+                        <property name="text" translatable="yes">On Question Set Loaded</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqQAidStartLabel" named="True">
+                        <property name="text" translatable="yes">On Question (with Aid) Start</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqQStartLabel" named="True">
+                        <property name="text" translatable="yes">On Question (without Aid) Start</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">2</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqQAidEndLabel" named="True">
+                        <property name="text" translatable="yes">On Question (with Aid) End</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">3</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqQEndLabel" named="True">
+                        <property name="text" translatable="yes">On Question (without Aid) End</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">4</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqRoundStartLabel" named="True">
+                        <property name="text" translatable="yes">On Round Start</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">5</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqGameEndLabel" named="True">
+                        <property name="text" translatable="yes">On Game End</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">6</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkLabel" id="bigPictureConfSeqTitleSetLabel" named="True">
+                        <property name="text" translatable="yes">On Title Set</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">7</property>
+                          <property name="sticky">w</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </child>
         <child>

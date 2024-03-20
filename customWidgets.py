@@ -302,6 +302,10 @@ class BigPictureAidDisplay(ctk.CTkFrame):
         else:
             messagebox.showerror("Time Error", "Time supplied is beyond end of media.")
 
+class BigPictureConfigurationPanel(ctk.CTkScrollableFrame):
+    pass
+    #? THIS NEEDS TO WORK ?#
+
 class BigPicture(ctk.CTkToplevel):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -353,6 +357,8 @@ class BigPicture(ctk.CTkToplevel):
         self.title("Buzzer System Big Picture Display")
         
         self.fullscreen = False
+        
+        self.__config = {}
         
     def updateRound(self, roundIndex, totalRounds, roundName):
         self.roundCountLabel.configure(text=f"Round {roundIndex} of {totalRounds}")

@@ -2,11 +2,13 @@ import radio #type: ignore
 from microbit import button_a, pin1, pin0 #type: ignore
 from neopixel import NeoPixel
 from time import sleep_ms
+from os import listdir
 
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+ORANGE = (255, 165, 0)
 
 class ColorProfile:
     def __init__(self, inactiveColor, waitingColor, activeColor, lockedColor):
@@ -26,6 +28,9 @@ class ColorProfile:
             return self.__lockedColor
         else:
             return (0, 0, 0)
+        
+    def values(self):
+        return map(str, self.__lockedColor)
 
 DEFAULT_COLOR_PROFILE = ColorProfile(RED, BLUE, GREEN, BLACK) # default color palette is all off, so the neopixels aren't on before the buzzer is properly initialised
 
@@ -40,18 +45,22 @@ class Buzzer:
         self.__displayPixels = True
         self.__pixelCount = pixelCount
         self.__pixels = NeoPixel(neopixelPin, pixelCount)
-        self.displayColor(RED)
+        self.displayColor(ORANGE)
 
         self.__ID = id # get the ID before continuing with initialisation
 
         self.__state = "inactive"
         self.__locked = False
 
-        self.__colorProfile = DEFAULT_COLOR_PROFILE
-
-        self.__teamID = None
-
-        self.displayColor(RED)
+        if "data.txt" in listdir():
+            with open("data.txt") as f:
+                data = f.read()
+            data = data.split(" ")
+            self.__teamID = int(data[0])
+            self.loadProfile(data[1:])
+        else:
+            self.__teamID = None
+            self.__colorProfile = DEFAULT_COLOR_PROFILE
 
     def open(self):
         if self.__locked: # only open the buzer if it wasn't already locked
@@ -96,6 +105,10 @@ class Buzzer:
     def setActive(self):
         self.__state = "active"
         self.updatePixels()
+        
+    def loadProfile(self, radioData):
+        self.__colorProfile = ColorProfile(list(map(int, radioData[0:3])), list(map(int, radioData[3:6])), list(map(int, radioData[6:9])), list(map(int, radioData[9:12])))
+        self.updatePixels()
 
     def mainloop(self):
         while True:
@@ -138,8 +151,9 @@ class Buzzer:
                         self.close()
                 elif radioData[0] == 65: # update the colour profile of the buzzer
                     if radioData[1] == self.__teamID and len(radioData) == 14: # input is received as a list of integers (which are sorted into 4 RGB triplets)
-                        self.__colorProfile = ColorProfile(list(map(int, radioData[2:5])), list(map(int, radioData[5:8])), list(map(int, radioData[8:11])), list(map(int, radioData[11:14])))
-                        self.updatePixels()
+                        self.loadProfile(radioData[2:14])
+                        with open("data.txt", "w") as f:
+                            f.write(str(self.__teamID) + " " + str(self.__colorProfile.values()))
                 elif radioData[0] == 85:
                     if radioData[1] == self.__teamID:
                         self.setActive()
@@ -156,7 +170,7 @@ class Buzzer:
                 self.updatePixels()
             elif radioData[0] == 60: # set the teamID of the buzzer
                 if radioData[1] == self.__ID: # only do this if the supplied buzzerID matches this buzzer's
-                    self.__teamID = radioData[2]
+                    self.__teamID = int(radioData[2])
                     self.updatePixels()
             elif radioData[0] == 75: # used to identify a single buzzer to the host and audience
                 if radioData[1] == self.__ID:
@@ -168,6 +182,6 @@ class Buzzer:
                     self.__teamID = None
                     self.updatePixels()
 
-buzzer = Buzzer(4, pin1, pin0, 7) # setup buzzer object
+buzzer = Buzzer("#REPLACE#", pin1, pin0, 7) # setup buzzer object
 
 buzzer.mainloop() # run main event loop
