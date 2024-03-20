@@ -389,17 +389,6 @@ class BigPictureConfigurationPanel(ctk.CTkFrame):
         self.__seqOpened.grid(row=8, column=1, sticky="EW", padx=5, pady=5)
         self.__seqOpened.set(self.__allowedDisplays[6])
         
-        """# SET DEFAULTS
-        self.__displayBuzzerData.select()
-        self.__displayTeamName.select()
-        
-        self.__seqQAidStart.set(self.__allowedDisplays[3])
-        self.__seqQStart.set(self.__allowedDisplays[3])
-        self.__seqRoundStart.set(self.__allowedDisplays[3])
-        
-        self.__seqGameEnd.set(self.__allowedDisplays[4])
-        self.__seqTitleSet.set(self.__allowedDisplays[4])
-        """
         self.save()
         
     def save(self):
