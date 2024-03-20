@@ -2,7 +2,6 @@ import radio #type: ignore
 from microbit import button_a, pin1, pin0 #type: ignore
 from neopixel import NeoPixel
 from time import sleep_ms
-from os import listdir
 
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -29,10 +28,7 @@ class ColorProfile:
         else:
             return (0, 0, 0)
         
-    def values(self):
-        return map(str, self.__lockedColor)
-
-DEFAULT_COLOR_PROFILE = ColorProfile(RED, BLUE, GREEN, BLACK) # default color palette is all off, so the neopixels aren't on before the buzzer is properly initialised
+DEFAULT_COLOR_PROFILE = ColorProfile(ORANGE, BLUE, GREEN, BLACK)
 
 class Buzzer:
     def __init__(self, id, buttonPin, neopixelPin, pixelCount):
@@ -52,15 +48,8 @@ class Buzzer:
         self.__state = "inactive"
         self.__locked = False
 
-        if "data.txt" in listdir():
-            with open("data.txt") as f:
-                data = f.read()
-            data = data.split(" ")
-            self.__teamID = int(data[0])
-            self.loadProfile(data[1:])
-        else:
-            self.__teamID = None
-            self.__colorProfile = DEFAULT_COLOR_PROFILE
+        self.__teamID = None
+        self.__colorProfile = DEFAULT_COLOR_PROFILE
 
     def open(self):
         if self.__locked: # only open the buzer if it wasn't already locked
@@ -106,8 +95,8 @@ class Buzzer:
         self.__state = "active"
         self.updatePixels()
         
-    def loadProfile(self, radioData):
-        self.__colorProfile = ColorProfile(list(map(int, radioData[0:3])), list(map(int, radioData[3:6])), list(map(int, radioData[6:9])), list(map(int, radioData[9:12])))
+    def loadProfile(self, profileData):
+        self.__colorProfile = ColorProfile(list(map(int, profileData[0:3])), list(map(int, profileData[3:6])), list(map(int, profileData[6:9])), list(map(int, profileData[9:12])))
         self.updatePixels()
 
     def mainloop(self):
@@ -152,8 +141,6 @@ class Buzzer:
                 elif radioData[0] == 65: # update the colour profile of the buzzer
                     if radioData[1] == self.__teamID and len(radioData) == 14: # input is received as a list of integers (which are sorted into 4 RGB triplets)
                         self.loadProfile(radioData[2:14])
-                        with open("data.txt", "w") as f:
-                            f.write(str(self.__teamID) + " " + str(self.__colorProfile.values()))
                 elif radioData[0] == 85:
                     if radioData[1] == self.__teamID:
                         self.setActive()

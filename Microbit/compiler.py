@@ -1,6 +1,7 @@
 import uflash
 from os import path
 import re
+import python_minifier
 
 def input_int(prompt : str, min_val : float = float("-inf"), max_val : float = float("inf")) -> int:
     input_val = ""
@@ -55,6 +56,7 @@ def flash_buzzers(start : int, buzzer_count : int, file_path : str):
             file_to_flash[tag_line] = file_to_flash[tag_line].replace('"#REPLACE#"', str(i))
             
         file_to_flash = "\n".join(file_to_flash)
+        file_to_flash = python_minifier.minify(file_to_flash, rename_locals=True, rename_globals=True)
         
         uflash.flash(python_script=file_to_flash.encode("utf-8"))
         print(f"Finished flashing Buzzer {i} to Micro:Bit.")
@@ -69,22 +71,22 @@ def main():
     flash_controller = not input_bool("Flash controller? [Y/N] ", "N")
     flash_host_buzzer = not input_bool("Flash host buzzer? [Y/N] ", "N")
     
-    buzzer_count = input_int("How many buzzers should be flashed? [1-16] ", 1, 16)
+    buzzer_count = input_int("How many buzzers should be flashed? [0-16] ", 0, 16)
     start = input_int("Start from which index? ", 0, buzzer_count)
     
     # Flash controller and host buzzer
     print("---------------------------------------")
     print("Flash Controller & Host Buzzer:")
     if flash_controller:
-        flash_file("Controller", "controller.py")
+        flash_file("Controller", "Microbit/controller.py")
     
     if flash_host_buzzer:
-        flash_file("Host Buzzer", "buzzer_host.py")
+        flash_file("Host Buzzer", "Microbit/buzzer_host.py")
     
     # Flash buzzers
     print("---------------------------------------")
     print("Flash Buzzers:")
-    flash_buzzers(start, buzzer_count, "buzzer.py")
+    flash_buzzers(start, buzzer_count, "Microbit/buzzer.py")
     
     # End
     print("---------------------------------------")

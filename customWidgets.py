@@ -5,6 +5,8 @@ from tkinter import messagebox
 import vlc
 from pygame import mixer
 
+import json
+
 mixer.init()
 
 class Color:
@@ -302,9 +304,178 @@ class BigPictureAidDisplay(ctk.CTkFrame):
         else:
             messagebox.showerror("Time Error", "Time supplied is beyond end of media.")
 
-class BigPictureConfigurationPanel(ctk.CTkScrollableFrame):
-    pass
-    #? THIS NEEDS TO WORK ?#
+class BigPictureConfigurationPanel(ctk.CTkFrame):
+    def __init__(self, master, saveCallback, saveDBCallback, loadDBCallback, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.__saveCallback = saveCallback
+        self.__saveDBCallback = saveDBCallback
+        
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=4)
+        
+        # SAVE/LOAD BUTTONS
+        saveLoadFrame = ctk.CTkFrame(self)
+        saveLoadFrame.grid(row=0, column=0, columnspan=2, sticky="NSEW", padx=5, pady=5)
+        saveLoadFrame.columnconfigure((0, 1), weight=1)
+        
+        ctk.CTkButton(saveLoadFrame, text="Save Changes", command=self.save).grid(row=0, column=0, columnspan=2, sticky="NSEW", padx=5, pady=5)
+        ctk.CTkButton(saveLoadFrame, text="Save to Database", command=self.saveDB).grid(row=1, column=0, sticky="NSEW", padx=5, pady=5)
+        ctk.CTkButton(saveLoadFrame, text="Load from Database", command=loadDBCallback).grid(row=1, column=1, sticky="NSEW", padx=5, pady=5)
+        
+        # ALIAS SETTINGS
+        aliasFrame = ctk.CTkFrame(self)
+        aliasFrame.grid(row=1, column=0, sticky="NSEW", padx=5, pady=5)
+        
+        self.__displayBuzzerData = ctk.CTkCheckBox(aliasFrame, text="Display Buzzer Data")
+        self.__displayBuzzerData.grid(row=0, column=0, sticky="W", padx=5, pady=5)
+        
+        self.__displayTeamName = ctk.CTkCheckBox(aliasFrame, text="Display Team Name")
+        self.__displayTeamName.grid(row=1, column=0, sticky="W", padx=5, pady=5)
+        
+        self.__displayBuzzerName = ctk.CTkCheckBox(aliasFrame, text="Display Buzzer Name")
+        self.__displayBuzzerName.grid(row=2, column=0, sticky="W", padx=5, pady=5)
+        
+        # SEQUENCING SETTINGS
+        seqFrame = ctk.CTkScrollableFrame(self, height=100)
+        seqFrame.grid(row=1, column=1, sticky="NSEW", padx=5, pady=5)
+        seqFrame.columnconfigure(0, weight=1)
+        seqFrame.columnconfigure(1, weight=2)
+        
+        self.__allowedDisplays = [
+            "0 - Do Nothing",
+            "1 - Display Question (with Aid)",
+            "2 - Display Question (without Aid)",
+            "3 - Display Round",
+            "4 - Display Title",
+            "5 - Display Scoreboard",
+            "6 - Set Blank"
+        ]
+        
+        ctk.CTkLabel(seqFrame, text="On Question Set Loaded").grid(row=0, column=0, sticky="W", padx=5, pady=5)
+        self.__seqSetLoaded = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqSetLoaded.grid(row=0, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Question (with Aid) Start").grid(row=1, column=0, sticky="W", padx=5, pady=5)
+        self.__seqQAidStart = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqQAidStart.grid(row=1, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Question (with Aid) End").grid(row=2, column=0, sticky="W", padx=5, pady=5)
+        self.__seqQAidEnd = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqQAidEnd.grid(row=2, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Question (without Aid) Start").grid(row=3, column=0, sticky="W", padx=5, pady=5)
+        self.__seqQStart = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqQStart.grid(row=3, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Question (without Aid) End").grid(row=4, column=0, sticky="W", padx=5, pady=5)
+        self.__seqQEnd = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqQEnd.grid(row=4, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Round Start").grid(row=5, column=0, sticky="W", padx=5, pady=5)
+        self.__seqRoundStart = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqRoundStart.grid(row=5, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Game End").grid(row=6, column=0, sticky="W", padx=5, pady=5)
+        self.__seqGameEnd = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqGameEnd.grid(row=6, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Title Set").grid(row=7, column=0, sticky="W", padx=5, pady=5)
+        self.__seqTitleSet = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqTitleSet.grid(row=7, column=1, sticky="EW", padx=5, pady=5)
+        
+        ctk.CTkLabel(seqFrame, text="On Big Picture Open").grid(row=8, column=0, sticky="W", padx=5, pady=5)
+        self.__seqOpened = ctk.CTkOptionMenu(seqFrame, values=self.__allowedDisplays)
+        self.__seqOpened.grid(row=8, column=1, sticky="EW", padx=5, pady=5)
+        self.__seqOpened.set(self.__allowedDisplays[6])
+        
+        """# SET DEFAULTS
+        self.__displayBuzzerData.select()
+        self.__displayTeamName.select()
+        
+        self.__seqQAidStart.set(self.__allowedDisplays[3])
+        self.__seqQStart.set(self.__allowedDisplays[3])
+        self.__seqRoundStart.set(self.__allowedDisplays[3])
+        
+        self.__seqGameEnd.set(self.__allowedDisplays[4])
+        self.__seqTitleSet.set(self.__allowedDisplays[4])
+        """
+        self.save()
+        
+    def save(self):
+        self.__savedData = {
+            "buzzerData" : {
+                "display" : self.__displayBuzzerData.get(),
+                "teamName" : self.__displayTeamName.get(),
+                "buzzerName" : self.__displayBuzzerName.get()
+            },
+            "seqActions" : {
+                "setLoaded" : self.getSeqID(self.__seqSetLoaded.get()),
+                "qAidStart" : self.getSeqID(self.__seqQAidStart.get()),
+                "qAidEnd" : self.getSeqID(self.__seqQAidEnd.get()),
+                "qStart" : self.getSeqID(self.__seqQStart.get()),
+                "qEnd" : self.getSeqID(self.__seqQEnd.get()),
+                "roundStart" : self.getSeqID(self.__seqRoundStart.get()),
+                "gameEnd" : self.getSeqID(self.__seqGameEnd.get()),
+                "titleSet" : self.getSeqID(self.__seqTitleSet.get()),
+                "opened" : self.getSeqID(self.__seqOpened.get())
+            }
+        }
+        
+        self.__saveCallback(self.__savedData)
+    
+    def getSeqID(self, value):
+        return int(value.split(" - ")[0])
+    
+    def saveDB(self):
+        self.save()
+        self.__saveDBCallback(json.dumps(self.savedData))
+    
+    def loadBuzzerData(self, buzzerData):
+        if buzzerData.get("display"):
+            self.__displayBuzzerData.select()
+        else:
+            self.__displayBuzzerData.deselect()
+            
+        if buzzerData.get("teamName"):
+            self.__displayTeamName.select()
+        else:
+            self.__displayTeamName.deselect()
+            
+        if buzzerData.get("buzzerName"):
+            self.__displayBuzzerName.select()
+        else:
+            self.__displayBuzzerName.deselect()
+            
+    def loadSeqActions(self, seqActions):
+        self.__seqSetLoaded.set(self.__allowedDisplays[seqActions.get("setLoaded", 0)])
+        self.__seqQAidStart.set(self.__allowedDisplays[seqActions.get("qAidStart", 0)])
+        self.__seqQAidEnd.set(self.__allowedDisplays[seqActions.get("qAidEnd", 0)])
+        self.__seqQStart.set(self.__allowedDisplays[seqActions.get("qStart", 0)])
+        self.__seqQEnd.set(self.__allowedDisplays[seqActions.get("qEnd", 0)])
+        self.__seqRoundStart.set(self.__allowedDisplays[seqActions.get("roundStart", 0)])
+        self.__seqGameEnd.set(self.__allowedDisplays[seqActions.get("gameEnd", 0)])
+        self.__seqTitleSet.set(self.__allowedDisplays[seqActions.get("titleSet", 0)])
+        self.__seqOpened.set(self.__allowedDisplays[seqActions.get("opened", 0)])
+    
+    def loadDB(self, data):
+        buzzerData = data.get("buzzerData")
+        if buzzerData is not None:
+            self.loadBuzzerData(buzzerData)
+        else:
+            data["buzzerData"] = {}
+            
+        seqActions = data.get("seqActions")
+        if seqActions is not None:
+            self.loadSeqActions(seqActions)
+        else:
+            data["seqActions"] = {}
+    
+        self.save()
+    
+    @property
+    def savedData(self):
+        return self.__savedData
 
 class BigPicture(ctk.CTkToplevel):
     def __init__(self, master=None, **kwargs):
@@ -358,8 +529,6 @@ class BigPicture(ctk.CTkToplevel):
         
         self.fullscreen = False
         
-        self.__config = {}
-        
     def updateRound(self, roundIndex, totalRounds, roundName):
         self.roundCountLabel.configure(text=f"Round {roundIndex} of {totalRounds}")
         self.roundNameLabel.configure(text=roundName)
@@ -368,7 +537,7 @@ class BigPicture(ctk.CTkToplevel):
         self.titleLabel.configure(text=title)
         self.subtitleLabel.configure(text=subtitle)
         
-        self.displayTitle()
+        self.triggerEvent("titleSet")
         
     def getTitle(self):
         return self.titleLabel.cget("text")
@@ -424,9 +593,44 @@ class BigPicture(ctk.CTkToplevel):
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack(expand=True, fill="both", side="top")
         
-    def updateBuzzerAlias(self, aliasText, color=Color.WHITE):
-        self.buzzedLabel.configure(text=aliasText, text_color=color)
-
+    def updateBuzzerAlias(self, team, buzzer, color=Color.WHITE):
+        if team == "" and buzzer == "":
+            self.buzzedLabel.configure(text="", text_color=color)
+            return
+        
+        if self.__config["buzzerData"].get("display"):
+            if self.__config["buzzerData"].get("teamName") and self.__config["buzzerData"].get("buzzerName"):
+                self.buzzedLabel.configure(text=f"{team} - {buzzer}", text_color=color)
+            elif self.__config["buzzerData"].get("teamName"):
+                self.buzzedLabel.configure(text=team, text_color=color)
+            elif self.__config["buzzerData"].get("buzzerName"):
+                self.buzzedLabel.configure(text=buzzer, text_color=color)
+        else:
+            self.buzzedLabel.configure(text="", text_color=color)
+        
+    def setConfig(self, saveData):
+        self.__config = saveData
+        
+    def triggerEvent(self, eventID):
+        actionID = self.__config["seqActions"].get(eventID, 0)
+        match actionID:
+            case 0:
+                return
+            case 1:
+                self.displayQuestion()
+                self.aidDisplay.pack(expand=True, fill="both", padx=10, pady=10)
+            case 2:
+                self.displayQuestion()
+                self.aidDisplay.pack_forget()
+            case 3:
+                self.displayRound()
+            case 4:
+                self.displayTitle()
+            case 5:
+                self.displayScoreboard()
+            case 6:
+                self.displayBlank()
+                
 class Selector(ctk.CTkToplevel):
     def __init__(self, master, options, callback, callbackArgs=None, **kwargs):
         super().__init__(master, **kwargs)

@@ -5,12 +5,14 @@ import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
-from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController
+from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController, BigPictureConfigurationPanel
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
 import tkinter as tk
+import json
 from time import sleep
+import sys
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -472,6 +474,7 @@ class SerialController(threading.Thread):
             self.attemptConnection()
         else:
             app.destroy()
+            sys.exit()
 
     def run(self):
         while True:
@@ -538,6 +541,9 @@ class BuzzerControlApp:
         self.__scoreboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__teamController.setScoreboards(self.__scoreboardWidget)
+        
+        self.__bigPictureConfPanel = BigPictureConfigurationPanel(builder.get_object("bigPictureConfTab"), self.bigPictureConfSave, self.bigPictureConfSaveDB, self.bigPictureConfLoadDBPrompt)
+        self.__bigPictureConfPanel.pack(padx=5, pady=5, fill="x")
 
         self.__soundboardWidget = Soundboard(
             builder.get_object("soundboardTab"), Sound)
@@ -604,7 +610,7 @@ class BuzzerControlApp:
 
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
             self.setBigPictureTitle()
-            self.bigPicture.displayTitle()
+            self.bigPicture.triggerEvent("setLoaded")
 
     def loadQuestionSetPrompt(self):
         setList = self.__questionManager.getSets()
@@ -638,6 +644,7 @@ class BuzzerControlApp:
             name = name[:30]
         else:
             messagebox.showerror("Value Error", "No name was provided.")
+            return
 
         inactiveColor, waitingColor, activeColor, lockedColor, displayColor, paletteID = teamElement.getColors()
 
@@ -652,8 +659,47 @@ class BuzzerControlApp:
         else:
             self.__cursor.execute("INSERT INTO ColorPalette (Name, InactiveColor, WaitingColor, ActiveColor, LockedColor, DisplayColor) VALUES (?, ?, ?, ?, ?, ?)", (
                 name, inactiveColor, waitingColor, activeColor, lockedColor, displayColor))
+            
         self.__db.commit()  # type: ignore
+        
+    def bigPictureConfSaveDB(self, data):
+        inputDialog = ctk.CTkInputDialog(title="Big Picture Configuration Name", text="Name your Big Picture Configuration")
+        
+        name = inputDialog.get_input()
+        if name != None or name == "":
+            name = name[:30]
+        else:
+            messagebox.showerror("Value Error", "No name was provided.")
+            return
+        
+        self.__cursor.execute(
+            "SELECT 1 FROM BigPictureConfiguration WHERE Name = ?", (name,))
+        if self.__cursor.fetchone():
+            if messagebox.askyesno("Overwrite Warning", "A Colour Palette with this name already exists. Overwrite it?"):
+                self.__cursor.execute("UPDATE BigPictureConfiguration SET Data = ? WHERE Name = ?", (data, name))
+            else:
+                return
+        else:
+            self.__cursor.execute("INSERT INTO BigPictureConfiguration (Name, Data) VALUES (?, ?)", (name, data))
+        
+        self.__db.commit() # type: ignore
+        
+    def bigPictureConfLoadDBPrompt(self):
+        self.__cursor.execute("SELECT ID, Name FROM BigPictureConfiguration")
+        configList = self.__cursor.fetchall()
+        configList = [f"{entry[0]} - {entry[1]}" for entry in configList]
 
+        self.selectTopLevel = Selector(
+            self.mainwindow, configList, self.bigPictureConfLoadDB)
+        
+    def bigPictureConfLoadDB(self, value):
+        configID = int(value.split()[0])
+        
+        self.__cursor.execute("SELECT Data FROM BigPictureConfiguration WHERE ID = ?", (configID,))
+        data = self.__cursor.fetchone()[0]
+        
+        self.__bigPictureConfPanel.loadDB(json.loads(data))
+        
     def loadTeamConfigurationPrompt(self):
         self.__cursor.execute("SELECT ID, Name FROM Configuration")
         configList = self.__cursor.fetchall()
@@ -697,6 +743,7 @@ class BuzzerControlApp:
             name = name[:30]
         else:
             messagebox.showerror("Value Error", "No name was provided.")
+            return
 
         self.__cursor.execute(
             "SELECT 1 FROM Configuration WHERE Name = ?", (name,))
@@ -797,6 +844,10 @@ class BuzzerControlApp:
         self.handleNextQuestion(questionData)
         self.__serialController.writeLine(f"{CommandID.RESET_LOCK}")
 
+    def bigPictureConfSave(self, saveData):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.setConfig(saveData)
+
     def handleNextQuestion(self, questionData):
         self.clearBuzzerAliasLabel()
         self.buzzerClose()
@@ -804,14 +855,22 @@ class BuzzerControlApp:
         self.updateQuestionLabels(questionData)
 
         if questionData[6] == 0:
-            self.showBigPictureQuestion()
+            if questionData[5] is None:
+                self.bigPictureTriggerEvent("qStart")
+            else:
+                self.bigPictureTriggerEvent("qAidStart")
+                
             self.updateRoundLabel()
         elif questionData[6] == 1:
-            self.showBigPictureBlank()
+            if questionData[5] is None:
+                self.bigPictureTriggerEvent("qEnd")
+            else:
+                self.bigPictureTriggerEvent("qAidEnd")
+                
             self.showBuzzerAdvanceFrame()
         elif questionData[6] == 2:
             self.updateRoundLabel()
-            self.showBigPictureRound()
+            self.bigPictureTriggerEvent("roundStart")
             self.showBuzzerAdvanceRoundFrame()
         elif questionData[6] == 3:
             self.updateRoundLabel()
@@ -848,6 +907,10 @@ class BuzzerControlApp:
     def showBigPictureBlank(self):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
             self.bigPicture.displayBlank()
+            
+    def bigPictureTriggerEvent(self, eventID):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.triggerEvent(eventID)
 
     def showBigPictureQuestion(self):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
@@ -903,12 +966,14 @@ class BuzzerControlApp:
                 self.__scoreboardWidget, self.bigPicture.scoreboardFrame)
             self.__teamController.updateScoreboards()
 
+            self.bigPicture.setConfig(self.__bigPictureConfPanel.savedData)
+
             self.updateRoundLabel()
             self.updateQuestionLabels(self.__questionManager.currentQuestion)
 
             self.setBigPictureTitle()
 
-            self.bigPicture.displayBlank()
+            self.bigPicture.triggerEvent("opened")
         else:
             self.bigPicture.focus()
 
@@ -1005,6 +1070,9 @@ class BuzzerControlApp:
             self.mainwindow, configList, self.hostBuzzerTeam)
         
     def hostBuzzerTeam(self, value):
+        if value == "":
+            return
+        
         teamID = int(value.split(" - ")[0])
         
         self.buzzed(teamID, -2)
@@ -1042,15 +1110,14 @@ class BuzzerControlApp:
             text=f"{teamAlias} - {buzzerAlias}")
 
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.bigPicture.updateBuzzerAlias(
-                f"{teamAlias} - {buzzerAlias}", activeColor)
+            self.bigPicture.updateBuzzerAlias(teamAlias, buzzerAlias, activeColor)
 
     def clearBuzzerAliasLabel(self):
         self.builder.get_object(
             "buzzerControlBuzzedAliasLabel").configure(text="")
 
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
-            self.bigPicture.updateBuzzerAlias("")
+            self.bigPicture.updateBuzzerAlias("", "")
 
     def buzzerIdentify(self, buzzerID):
         self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
@@ -1075,6 +1142,7 @@ class BuzzerControlApp:
     def buzzerFuncResend(self):
         commands = self.__teamController.getCommands()
         self.sendLongCommand(commands)
+        messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
 
     def buzzerFuncLightOn(self):
         self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 1")
