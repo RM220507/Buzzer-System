@@ -73,20 +73,21 @@ def main():
     
     start = input_int("Start from which index? [0-15] ", 0, 15)
     end = input_int(f"End at which index? [{start}-15] ", start, 15)
+    #flash_test = not input_bool("Flash buzzers with test script? [Y/N]", "N")
     
     # Flash controller and host buzzer
     print("---------------------------------------")
     print("Flash Controller & Host Buzzer:")
     if flash_controller:
-        flash_file("Controller", "Microbit/controller.py")
+        flash_file("Controller", "Microbit/src/controller.py")
     
     if flash_host_buzzer:
-        flash_file("Host Buzzer", "Microbit/buzzer_host.py")
+        flash_file("Host Buzzer", "Microbit/src/buzzer_host.py")
     
     # Flash buzzers
     print("---------------------------------------")
     print("Flash Buzzers:")
-    flash_buzzers(start, end, "Microbit/buzzer.py")
+    flash_buzzers(start, end, "Microbit/src/buzzer.py")
     
     # End
     print("---------------------------------------")
