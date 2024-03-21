@@ -783,6 +783,44 @@
                 </child>
               </object>
             </child>
+            <child>
+              <object class="customtkinter.CTkFrame" id="buzzerFuncConfigSetFrame" named="True">
+                <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
+                  <property name="side">top</property>
+                </layout>
+                <containerlayout manager="grid">
+                  <property type="col" id="all" name="weight">1</property>
+                </containerlayout>
+                <child>
+                  <object class="customtkinter.CTkButton" id="buzzerFuncConfigSetLoadBtn" named="True">
+                    <property name="command" type="command" cbtype="simple">loadConfigSetPrompt</property>
+                    <property name="text" translatable="yes">Load a Configuration Set</property>
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkButton" id="buzzerFuncConfigSetSaveBtn" named="True">
+                    <property name="text" translatable="yes">Save a Configuration Set</property>
+                    <layout manager="grid">
+                      <property name="column">1</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </child>
       </object>

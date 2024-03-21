@@ -1,5 +1,4 @@
 TO DO - Buzzer System
 ------------------------------
-Set Creation app <- literally just needs to allow creation of questions, rounds, sets, and color palettes
-Usage instructions
-
+Big Picture Conf Panel <- seqActions doesn't allow access to 'opened' option
+Configuration Sets <- creation of

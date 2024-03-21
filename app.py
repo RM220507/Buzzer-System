@@ -700,6 +700,24 @@ class BuzzerControlApp:
         
         self.__bigPictureConfPanel.loadDB(json.loads(data))
         
+    def loadConfigSetPrompt(self):
+        self.__cursor.execute("SELECT ID, Name FROM ConfigurationSet")
+        configList = self.__cursor.fetchall()
+        configList = [f"{entry[0]} - {entry[1]}" for entry in configList]
+
+        self.selectTopLevel = Selector(
+            self.mainwindow, configList, self.loadConfigSet)
+        
+    def loadConfigSet(self, value):
+        configID = int(value.split()[0])
+        
+        self.__cursor.execute("SELECT QuestionSetID, TeamConfigID, BigPictureConfigID FROM ConfigurationSet WHERE ID = ?", (configID,))
+        configs = self.__cursor.fetchone()
+        
+        self.bigPictureConfLoadDB(f"{configs[2]} - Temp")
+        self.loadTeamConfiguration(f"{configs[1]} - Temp")
+        self.loadQuestionSet(f"{configs[0]} - Temp")
+        
     def loadTeamConfigurationPrompt(self):
         self.__cursor.execute("SELECT ID, Name FROM Configuration")
         configList = self.__cursor.fetchall()

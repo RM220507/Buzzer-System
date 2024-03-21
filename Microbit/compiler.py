@@ -40,7 +40,7 @@ def search_for_tag(lines : list, tag : str):
         
     return tag_line
         
-def flash_buzzers(start : int, buzzer_count : int, file_path : str):
+def flash_buzzers(start : int, end : int, file_path : str):
     if path.isfile(file_path):
         with open(file_path) as f:
             python_data = f.readlines()
@@ -49,7 +49,7 @@ def flash_buzzers(start : int, buzzer_count : int, file_path : str):
         
     tag_line = search_for_tag(python_data, '"#REPLACE#"')
     
-    for i in range(start, buzzer_count):
+    for i in range(start, end + 1):
         input(f"Connect the Micro:Bit for Buzzer {i}. Press ENTER when ready.")
         file_to_flash = python_data.copy()
         if tag_line is not None:
@@ -71,8 +71,8 @@ def main():
     flash_controller = not input_bool("Flash controller? [Y/N] ", "N")
     flash_host_buzzer = not input_bool("Flash host buzzer? [Y/N] ", "N")
     
-    buzzer_count = input_int("How many buzzers should be flashed? [0-16] ", 0, 16)
-    start = input_int("Start from which index? ", 0, buzzer_count)
+    start = input_int("Start from which index? [0-15] ", 0, 15)
+    end = input_int(f"End at which index? [{start}-15] ", start, 15)
     
     # Flash controller and host buzzer
     print("---------------------------------------")
@@ -86,7 +86,7 @@ def main():
     # Flash buzzers
     print("---------------------------------------")
     print("Flash Buzzers:")
-    flash_buzzers(start, buzzer_count, "Microbit/buzzer.py")
+    flash_buzzers(start, end, "Microbit/buzzer.py")
     
     # End
     print("---------------------------------------")

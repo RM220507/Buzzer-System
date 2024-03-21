@@ -337,8 +337,8 @@ class BigPictureConfigurationPanel(ctk.CTkFrame):
         self.__displayBuzzerName.grid(row=2, column=0, sticky="W", padx=5, pady=5)
         
         # SEQUENCING SETTINGS
-        seqFrame = ctk.CTkScrollableFrame(self, height=100)
-        seqFrame.grid(row=1, column=1, sticky="NSEW", padx=5, pady=5)
+        seqFrame = ctk.CTkScrollableFrame(self)
+        seqFrame.grid(row=1, column=1, sticky="EW", padx=5, pady=5) #! WHY DOES THIS NOT WORK
         seqFrame.columnconfigure(0, weight=1)
         seqFrame.columnconfigure(1, weight=2)
         
