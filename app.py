@@ -312,10 +312,12 @@ class QuestionManager:
     @property
     def currentRound(self):
         if self.__setLoaded:
-            if self.__rounds[self.__roundID][2] is None:
-                return self.__roundID + 1, self.__rounds[self.__roundID][1]
-            else:
-                return self.__roundID + 1, self.__rounds[self.__roundID][2]
+            if self.__roundID < len(self.__rounds):
+                if self.__rounds[self.__roundID][2] is None:
+                    return self.__roundID + 1, self.__rounds[self.__roundID][1]
+                else:
+                    return self.__roundID + 1, self.__rounds[self.__roundID][2]
+            return 0, "Out of Range"
         else:
             return 0, "No Set Loaded"
 
@@ -338,6 +340,15 @@ class QuestionManager:
         self.__questionID = len(self.__questions)
         self.__roundID += 1
         return self.advanceQuestion()
+    
+    def jumpRound(self, roundID):
+        if roundID < self.numRounds:
+            self.__roundID = roundID
+            return self.advanceQuestion()
+    
+    def getRounds(self):
+        if self.__setLoaded:
+            return self.__rounds
 
     def advanceQuestion(self):
         if not self.__setLoaded:
@@ -587,6 +598,24 @@ class BuzzerControlApp:
         self.__serialController.start()
 
         self.mainwindow.mainloop()
+        
+    def jumpRoundPrompt(self):
+        rounds = self.__questionManager.getRounds()
+        if rounds is None:
+            messagebox.showerror("Round Jump Error", "Cannot jump to round when set is not loaded.")
+            return
+        roundOptions = [f"{i} - {data[1]}" for i, data in enumerate(rounds)]
+        
+        self.selectTopLevel = Selector(self.mainwindow, roundOptions, self.jumpRound)
+    
+    def jumpRound(self, value):
+        roundID = int(value.split()[0])
+        
+        successData = self.__questionManager.jumpRound(roundID)
+        if successData is not None:
+            self.handleNextQuestion(successData)
+        else:
+            messagebox.showerror("Round Jump Error", "An unknown error occured.")
 
     def loadQuestionSet(self, value):
         setID = int(value.split()[0])
@@ -612,11 +641,16 @@ class BuzzerControlApp:
             self.setBigPictureTitle()
             self.bigPicture.triggerEvent("setLoaded")
 
-    def loadQuestionSetPrompt(self):
+    def loadQuestionSetPrompt(self, customCallback=None):
         setList = self.__questionManager.getSets()
 
+        if customCallback is not None:
+            callback = customCallback
+        else:
+            callback = self.loadQuestionSet
+
         self.selectTopLevel = Selector(
-            self.mainwindow, setList, self.loadQuestionSet)
+            self.mainwindow, setList, callback)
 
     def loadColorPalette(self, value, teamElement):
         paletteID = int(value.split()[0])
@@ -652,7 +686,7 @@ class BuzzerControlApp:
             "SELECT 1 FROM ColorPalette WHERE Name = ?", (name,))
         if self.__cursor.fetchone():
             if messagebox.askyesno("Overwrite Warning", "A Colour Palette with this name already exists. Overwrite it?"):
-                self.__cursor.execute("UPDATE ColorPalette SET InactiveColor = ?, WaitingColor = ?, ActiveColor = ?, LockedColor = ?, DisplayColor = ?, WHERE Name = ?", (
+                self.__cursor.execute("UPDATE ColorPalette SET InactiveColor = ?, WaitingColor = ?, ActiveColor = ?, LockedColor = ?, DisplayColor = ? WHERE Name = ?", (
                     inactiveColor, waitingColor, activeColor, lockedColor, displayColor, name))
             else:
                 return
@@ -684,13 +718,18 @@ class BuzzerControlApp:
         
         self.__db.commit() # type: ignore
         
-    def bigPictureConfLoadDBPrompt(self):
+    def bigPictureConfLoadDBPrompt(self, customCallback=None):
         self.__cursor.execute("SELECT ID, Name FROM BigPictureConfiguration")
         configList = self.__cursor.fetchall()
         configList = [f"{entry[0]} - {entry[1]}" for entry in configList]
+        
+        if customCallback is not None:
+            callback = customCallback
+        else:
+            callback = self.bigPictureConfLoadDB
 
         self.selectTopLevel = Selector(
-            self.mainwindow, configList, self.bigPictureConfLoadDB)
+            self.mainwindow, configList, callback)
         
     def bigPictureConfLoadDB(self, value):
         configID = int(value.split()[0])
@@ -718,13 +757,18 @@ class BuzzerControlApp:
         self.loadTeamConfiguration(f"{configs[1]} - Temp")
         self.loadQuestionSet(f"{configs[0]} - Temp")
         
-    def loadTeamConfigurationPrompt(self):
+    def loadTeamConfigurationPrompt(self, customCallback=None):
         self.__cursor.execute("SELECT ID, Name FROM Configuration")
         configList = self.__cursor.fetchall()
         configList = [f"{entry[0]} - {entry[1]}" for entry in configList]
 
+        if customCallback is not None:
+            callback = customCallback
+        else:
+            callback = self.loadTeamConfiguration
+
         self.selectTopLevel = Selector(
-            self.mainwindow, configList, self.loadTeamConfiguration)
+            self.mainwindow, configList, callback)
 
     def loadTeamConfiguration(self, value):
         configID = int(value.split()[0])

@@ -476,7 +476,7 @@
                           <property name="padx">5</property>
                           <property name="pady">5</property>
                           <property name="row">0</property>
-                          <property name="rowspan">2</property>
+                          <property name="rowspan">3</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
@@ -507,6 +507,21 @@
                           <property name="padx">5</property>
                           <property name="pady">5</property>
                           <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="buzzerControlAdvanceRoundJumpBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">jumpRoundPrompt</property>
+                        <property name="compound">top</property>
+                        <property name="hover">True</property>
+                        <property name="text" translatable="yes">Jump to Round</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">2</property>
                           <property name="sticky">nsew</property>
                         </layout>
                       </object>
