@@ -636,7 +636,6 @@ class BuzzerControlApp:
             self.builder.get_object("bigPictureConfTitleEntry").insert(0, setInfo[0])
             self.builder.get_object("bigPictureConfSubtitleEntry").insert(0, setInfo[1])
             
-
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
             self.setBigPictureTitle()
             self.bigPicture.triggerEvent("setLoaded")

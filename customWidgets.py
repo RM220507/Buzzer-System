@@ -262,8 +262,8 @@ class BigPictureAidDisplay(ctk.CTkFrame):
         self.canvas.pack(fill="both")
 
         # Creating VLC player
-        #vlcPath = "vlc/vlc.exe"
-        #self.instance = vlc.Instance(f"--vlc-path={vlcPath}")
+        #vlcPath = "VLC/vlc.exe"
+        #self.instance = vlc.Instance(f"--path={vlcPath}")
         self.instance = vlc.Instance() #! THIS NEEDS TO BE CHANGED
         self.player = self.instance.media_player_new() # pyright: ignore[reportOptionalMemberAccess]
 
