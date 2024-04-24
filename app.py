@@ -544,7 +544,8 @@ class BuzzerControlApp:
             "buzzerControlClosedTeamSelect").configure(values=[])
 
         self.__teamSetupWidget = TeamSetup(builder.get_object("teamSetupTab"), 16, self.setupTeams, self.loadColorPalettePrompt,
-                                        self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt, self.buzzerIdentify, self.buzzerIdentifyAll)
+                                        self.saveColorPalette, self.saveTeamConfiguration, self.loadTeamConfigurationPrompt,
+                                        self.buzzerIdentify, self.buzzerIdentifyAll, self.loadColorPalette)
         self.__teamSetupWidget.pack(padx=5, pady=5, expand=True, fill="both")
 
         self.__scoreboardWidget = HostScoreboard(

@@ -168,13 +168,13 @@ class Scoreboard(ctk.CTkScrollableFrame):
     def getScores(self, teams):
         teamDict = {}
         for team in teams:
-            teamDict[team.alias] = team.score
+            teamDict[team.alias] = [team.score, team.activeColor]
         return teamDict
         
     def getSortedScores(self, teams):
         teamDict = self.getScores(teams)
         
-        sortedScores = sorted(teamDict.items(), key=lambda x:x[1], reverse=True)
+        sortedScores = sorted(teamDict.items(), key=lambda x:x[1][0], reverse=True)
         return sortedScores
         
     def updateValues(self, teams):
@@ -183,25 +183,25 @@ class Scoreboard(ctk.CTkScrollableFrame):
         for child in self.winfo_children(): child.destroy()
         
         for score in scores:
-            newElement = ScoreboardTeamElement(self, score[0], score[1], self.__darkMode, self.__largeFont)
+            newElement = ScoreboardTeamElement(self, score[0], score[1][0], self.__darkMode, self.__largeFont, score[1][1])
             newElement.pack(padx=5, pady=5, fill="x")
             
 class ScoreboardTeamElement(ctk.CTkFrame):
-    def __init__(self, master, name, score, darkMode, largeFont, **kwargs):
+    def __init__(self, master, name, score, darkMode, largeFont, color, **kwargs):
         super().__init__(master, **kwargs)
         
         fonts = Font()
         
-        nameLabel = ctk.CTkLabel(self, text=name, font=fonts.LARGE)
+        nameLabel = ctk.CTkLabel(self, text=name, font=fonts.LARGE, color=color)
         nameLabel.pack(padx=5, pady=5, side="left")
         
-        scoreLabel = ctk.CTkLabel(self, text=str(score), font=fonts.LARGE)
+        scoreLabel = ctk.CTkLabel(self, text=str(score), font=fonts.LARGE, color=color)
         scoreLabel.pack(padx=5, pady=5, side="right")
         
         if darkMode:
             self.configure(bg_color=Color.BLACK, fg_color=Color.BLACK)
-            nameLabel.configure(text_color=Color.WHITE)
-            scoreLabel.configure(text_color=Color.WHITE)
+            #nameLabel.configure(text_color=Color.WHITE)
+            #scoreLabel.configure(text_color=Color.WHITE)
             
         if largeFont:
             nameLabel.configure(font=fonts.EXTRA_LARGE)
@@ -649,7 +649,7 @@ class Selector(ctk.CTkToplevel):
         return self.__options.get()
 
 class TeamSetup(ctk.CTkScrollableFrame):
-    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, buzzerIdentifyCallback, identifyAllCallback, **kwargs):
+    def __init__(self, master, numBuzzers, setConfCallback, loadColorCallback, saveColorCallback, saveConfigCallback, loadConfigCallback, buzzerIdentifyCallback, identifyAllCallback, loadPaletteCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.rowconfigure(0, weight=1)
@@ -662,6 +662,7 @@ class TeamSetup(ctk.CTkScrollableFrame):
         self.__setConfCallback = setConfCallback
         self.__loadColorCallback = loadColorCallback
         self.__saveColorCallback = saveColorCallback
+        self.__loadPaletteCallback = loadPaletteCallback
         
         self.__buttonFrame = ctk.CTkFrame(self)
         self.__buttonFrame.grid(row=0, column=0, padx=5, pady=5, columnspan=2, sticky="EW")
@@ -720,6 +721,19 @@ class TeamSetup(ctk.CTkScrollableFrame):
             if element.getName() == "" or element.getName() in teamNames:
                 element.destroy()
                 continue
+            
+            #? CGS SPECIFIC CODE - AUTO LOAD COLORS BASED ON HOUSE
+            match element.getName():
+                case "Ash":
+                    self.__loadPaletteCallback("4 - Ash", element)
+                case "Beech":
+                    self.__loadPaletteCallback("3 - Beech", element)
+                case "Cedar":
+                    self.__loadPaletteCallback("2 - Cedar", element)
+                case "Elm":
+                    self.__loadPaletteCallback("5 - Elm", element)
+                case "Oak":
+                    self.__loadPaletteCallback("6 - Oak", element)
             
             teamData = (element.getName(), element.getColors(), [])
             
