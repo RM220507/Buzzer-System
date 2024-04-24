@@ -13,6 +13,7 @@ import tkinter as tk
 import json
 from time import sleep
 import sys
+from PIL import ImageTk
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -189,6 +190,15 @@ class TeamController:
     @property
     def activeTeam(self):
         return self.__activeTeam
+    
+    def scores_exist(self):
+        exists = False
+        for team in self.__teams:
+            if team.score != 0:
+                exists = True
+                break
+            
+        return exists
 
 class Team:
     def __init__(self, ID, alias, colorPalette, buzzers):
@@ -474,7 +484,10 @@ class SerialController(threading.Thread):
         return self.__port.readline().decode("utf-8")
 
     def writeLine(self, string):
-        self.__port.write(bytes((string + "\n"), "utf-8"))
+        try:
+            self.__port.write(bytes((string + "\n"), "utf-8"))
+        except Exception as e:
+            messagebox.showerror("Unexpected Error Occured", f"An error occured. Try restarting the application. {e}")
 
     def raiseException(self):
         askRetry = messagebox.askretrycancel(
@@ -513,6 +526,10 @@ class BuzzerControlApp:
         builder.add_from_file(PROJECT_UI)
 
         self.mainwindow = builder.get_object("rootFrame", master)
+        
+        self.iconpath = ImageTk.PhotoImage(file=path.join("assets", "icon.png"))
+        self.mainwindow.wm_iconbitmap()
+        self.mainwindow.iconphoto(False, self.iconpath)
 
         self.bigPicture = None
         self.selectTopLevel = None
@@ -849,6 +866,10 @@ class BuzzerControlApp:
         self.__db.commit()  # type: ignore
 
     def setupTeams(self, teams):
+        if self.__teamController.scores_exist():
+            if not messagebox.askokcancel("Score Reset Warning", "The current scores are not zero. Sending a new configuration will reset the scores to zero. Are you sure you wish to continue?"):
+                return
+            
         commands = self.__teamController.setupTeams(teams)
         teamData = self.__teamController.getTeamStrings()
         self.builder.get_object(
@@ -928,7 +949,6 @@ class BuzzerControlApp:
                 self.bigPictureTriggerEvent("qEnd")
             else:
                 self.bigPictureTriggerEvent("qAidEnd")
-                
             self.showBuzzerAdvanceFrame()
         elif questionData[6] == 2:
             self.updateRoundLabel()
@@ -1203,8 +1223,11 @@ class BuzzerControlApp:
         
     def buzzerFuncResend(self):
         commands = self.__teamController.getCommands()
-        self.sendLongCommand(commands)
-        messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
+        if len(commands) >= 0:
+            self.sendLongCommand(commands)
+            messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
+        else:
+            messagebox.showerror("Team Setup Error", "The team configuration is empty, so cannot be sent to device.")
 
     def buzzerFuncLightOn(self):
         self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 1")
@@ -1217,7 +1240,6 @@ class BuzzerControlApp:
         
     def buzzerIdentifyAll(self):
         self.__serialController.writeLine(f"{CommandID.IDENTIFY_ALL}")
-
 
 if __name__ == "__main__":
     app = BuzzerControlApp()

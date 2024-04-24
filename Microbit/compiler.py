@@ -79,15 +79,15 @@ def main():
     print("---------------------------------------")
     print("Flash Controller & Host Buzzer:")
     if flash_controller:
-        flash_file("Controller", "Microbit/src/controller.py")
+        flash_file("Controller", "src/controller.py")
     
     if flash_host_buzzer:
-        flash_file("Host Buzzer", "Microbit/src/buzzer_host.py")
+        flash_file("Host Buzzer", "src/buzzer_host.py")
     
     # Flash buzzers
     print("---------------------------------------")
     print("Flash Buzzers:")
-    flash_buzzers(start, end, "Microbit/src/buzzer.py")
+    flash_buzzers(start, end, "src/buzzer.py")
     
     # End
     print("---------------------------------------")
