@@ -22,18 +22,12 @@ def input_bool(prompt : str, condition_val : str) -> bool:
     return input_val.strip().upper() == condition_val.upper()
 
 def flash_file(microbit_name : str, file_path : str):
-    done = False
-    while not done:
-        input(f"Connect the {microbit_name} Micro:Bit. Press ENTER when ready.")
-        if path.isfile(file_path):
-            try:
-                uflash.flash(path_to_python=file_path)
-                print(f"Finished flashing {microbit_name} Micro:Bit.")
-                done = True
-            except IOError:
-                print("Micro:bit not found. Are you sure it's plugged in?")
-        else:
-            raise FileNotFoundError(f"Required file '{file_path}' was not found.")
+    input(f"Connect the {microbit_name} Micro:Bit. Press ENTER when ready.")
+    if path.isfile(file_path):
+        uflash.flash(path_to_python=file_path)
+        print(f"Finished flashing {microbit_name} Micro:Bit.")
+    else:
+        raise FileNotFoundError(f"Required file '{file_path}' was not found.")
         
 def search_for_tag(lines : list, tag : str):
     for i in range(len(lines) - 1, -1, -1):

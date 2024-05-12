@@ -4,8 +4,9 @@ import tkinter as tk
 from tkinter import messagebox
 import vlc
 from pygame import mixer
-
+from PIL import ImageTk
 import json
+from os import path
 
 mixer.init()
 
@@ -55,6 +56,76 @@ class MacroController(ctk.CTkFrame):
         self.__commandBind[id] = value
         self.__btns[id].configure(text=value)
         
+def createPopOutBigPictureControl(master, showBigPictureQuestion, showBigPictureRound, showBigPictureScoreboard, showBigPictureBlank, showBigPictureTitle):
+    bigPictureSetViewFrame = ctk.CTkFrame(master)
+    
+    bigPictureSetQuestionButton = ctk.CTkButton(
+        bigPictureSetViewFrame)
+    bigPictureSetQuestionButton.configure(text='Display Question')
+    bigPictureSetQuestionButton.pack(
+        fill="x", padx=5, pady=5, side="top")
+    bigPictureSetQuestionButton.configure(
+        command=showBigPictureQuestion)
+    
+    bigPictureSetRoundButton = ctk.CTkButton(bigPictureSetViewFrame)
+    bigPictureSetRoundButton.configure(text='Display Round')
+    bigPictureSetRoundButton.pack(
+        fill="x", padx=5, pady=5, side="top")
+    bigPictureSetRoundButton.configure(
+        command=showBigPictureRound)
+    
+    bigPictureSetScoreboardButton = ctk.CTkButton(
+        bigPictureSetViewFrame)
+    bigPictureSetScoreboardButton.configure(text='Display Scoreboard')
+    bigPictureSetScoreboardButton.pack(
+        fill="x", padx=5, pady=5, side="top")
+    bigPictureSetScoreboardButton.configure(
+        command=showBigPictureScoreboard)
+    
+    bigPictureSetBlankButton = ctk.CTkButton(bigPictureSetViewFrame)
+    bigPictureSetBlankButton.configure(text='Display Blank')
+    bigPictureSetBlankButton.pack(
+        fill="x", padx=5, pady=5, side="top")
+    bigPictureSetBlankButton.configure(
+        command=showBigPictureBlank)
+    
+    bigPictureSetTitleBtn = ctk.CTkButton(bigPictureSetViewFrame)
+    bigPictureSetTitleBtn.configure(text='Display Title')
+    bigPictureSetTitleBtn.pack(fill="x", padx=5, pady=5, side="top")
+    bigPictureSetTitleBtn.configure(command=showBigPictureTitle)
+    
+    return bigPictureSetViewFrame
+        
+class PopOutWidget(ctk.CTkToplevel):
+    def __init__(self, master, title, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.title(f"Buzzer System Pop-Out - {title}")
+    
+    def cloneWidget(self, widget, master=None):
+        parent = master if master else widget.master
+        cls = widget.__class__
+        
+        if widget.configure() is not None:
+            cfg = {key: widget.cget(key) for key in widget.configure()}
+        else:
+            cfg = {}
+        cloned = cls(parent, **cfg)
+
+        for child in widget.winfo_children():
+            child_cloned = self.cloneWidget(child, master=cloned)
+            if child.grid_info():
+                grid_info = {k: v for k, v in child.grid_info().items() if k not in {'in'}}
+                child_cloned.grid(**grid_info)
+            elif child.place_info():
+                place_info = {k: v for k, v in child.place_info().items() if k not in {'in'}}
+                child_cloned.place(**place_info)
+            else:
+                pack_info = {k: v for k, v in child.pack_info().items() if k not in {'in'}}
+                child_cloned.pack(**pack_info)
+
+        return cloned
+    
 class Soundboard(ctk.CTkFrame):
     def __init__(self, master, sounds, **kwargs):
         super().__init__(master, **kwargs)
@@ -262,9 +333,7 @@ class BigPictureAidDisplay(ctk.CTkFrame):
         self.canvas.pack(fill="both")
 
         # Creating VLC player
-        #vlcPath = "VLC/vlc.exe"
-        #self.instance = vlc.Instance(f"--path={vlcPath}")
-        self.instance = vlc.Instance() #! THIS NEEDS TO BE CHANGED
+        self.instance = vlc.Instance()
         self.player = self.instance.media_player_new() # pyright: ignore[reportOptionalMemberAccess]
 
     def GetHandle(self):
@@ -472,6 +541,10 @@ class BigPicture(ctk.CTkToplevel):
         
         self.configure(fg_color=Color.BLACK)
         
+        self.iconpath = ImageTk.PhotoImage(file=path.join("assets", "icon.png"))
+        self.wm_iconbitmap()
+        self.iconphoto(False, self.iconpath)
+        
         fonts = Font()
         
         # QUESTION FRAME
@@ -625,6 +698,10 @@ class Selector(ctk.CTkToplevel):
         super().__init__(master, **kwargs)
         
         self.grab_set()
+        
+        self.iconpath = ImageTk.PhotoImage(file=path.join("assets", "icon.png"))
+        self.wm_iconbitmap()
+        self.iconphoto(False, self.iconpath)
         
         self.__options = ctk.CTkOptionMenu(self, values=options)
         self.__options.set(options[0])

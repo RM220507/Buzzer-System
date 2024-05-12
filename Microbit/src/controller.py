@@ -60,7 +60,7 @@ class BuzzerController:
                 serialData += newChar
 
     def execute(self, serialData):
-        print(serialData)
+        #print(serialData)
         commands = serialData.split(";")
         for command in commands:
             try:

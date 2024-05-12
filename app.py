@@ -1,3 +1,4 @@
+import eventlet.wsgi
 import pathlib
 import pygubu
 import serial
@@ -5,7 +6,7 @@ import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
-from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController, BigPictureConfigurationPanel
+from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController, BigPictureConfigurationPanel, PopOutWidget, createPopOutBigPictureControl
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
@@ -14,6 +15,8 @@ import json
 from time import sleep
 import sys
 from PIL import ImageTk
+import socketio as sio
+import eventlet
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
@@ -76,7 +79,10 @@ class TeamController:
         self.__scoreboards = []
 
     def setScoreboards(self, *widgets):
-        self.__scoreboards = widgets
+        self.__scoreboards = list(widgets)
+        
+    def addScoreboard(self, widget):
+        self.__scoreboards.append(widget)
 
     @property
     def teams(self):
@@ -112,7 +118,8 @@ class TeamController:
 
     def updateScoreboards(self):
         for scoreboard in self.__scoreboards:
-            scoreboard.updateValues(self.__teams)
+            if scoreboard.winfo_exists():
+                scoreboard.updateValues(self.__teams)
 
     def setActive(self, team, buzzer):
         self.__activeTeam = team
@@ -483,11 +490,31 @@ class SerialController(threading.Thread):
     def getLine(self):
         return self.__port.readline().decode("utf-8")
 
-    def writeLine(self, string):
+    def singleSend(self, string):
         try:
             self.__port.write(bytes((string + "\n"), "utf-8"))
+            return True
         except Exception as e:
             messagebox.showerror("Unexpected Error Occured", f"An error occured. Try restarting the application. {e}")
+            
+    def multiSend(self, commands):
+        commandString = ";".join(commands)
+        if len(commandString) > 50:              
+            separatedCommands = [commands[0]]
+            currentIndex = 0
+            for command in commands[1:]:
+                if len(separatedCommands[currentIndex]) + len(command) + 1 > 50:
+                    currentIndex += 1
+                    separatedCommands.append(command)
+                else:
+                    separatedCommands[currentIndex] += f";{command}"
+                    
+            for smallCommand in separatedCommands:
+                if not self.singleSend(smallCommand):
+                    break
+                sleep(0.5)
+        else:
+            self.singleSend(commandString)
 
     def raiseException(self):
         askRetry = messagebox.askretrycancel(
@@ -508,6 +535,63 @@ class SerialController(threading.Thread):
                     self.__readCallback(data)
             except:
                 self.raiseException()
+                
+class FarThrowServer(threading.Thread):
+    def __init__(self, readCallback):
+        super().__init__(daemon=True)
+        
+        self.server = sio.Server(async_mode="threading")
+        
+        self.app = sio.WSGIApp(self.server)
+        
+        self.__readCallback = readCallback
+        
+        self.connectCallbacks()
+        self.server.on("receive", self.receive)
+        
+    def connectCallbacks(self):
+        @self.server.event
+        def connect(sid, environ, auth):
+            print("Client Connected")
+            
+        @self.server.event
+        def disconnect(sid):
+            print("Client Disconnected")
+            
+    def receive(self, sid, data):
+        self.__readCallback(data)
+            
+    def multiSend(self, commands):
+        self.server.emit("multi", commands)
+        
+    def singleSend(self, command):
+        self.server.emit("single", command)
+        
+    def run(self):
+        eventlet.wsgi.server(eventlet.listen(("", 8000)), self.app)
+        
+class CommandSendController:
+    def __init__(self, externalReadCallback):
+        self.__useSerial = messagebox.askyesno("Select Command Send Mode", "Use serial connection to send commands [Yes] or far throw [No]?")
+        
+        if self.__useSerial:
+            self.__sender = SerialController(self.readCallback)
+        else:
+            self.__sender = FarThrowServer(self.readCallback)
+            
+        self.__externalReadCallback = externalReadCallback
+    
+    def singleSend(self, command):
+        self.__sender.singleSend(command)
+        
+    def multiSend(self, commands):
+        self.__sender.multiSend(commands)
+        
+    def readCallback(self, data):
+        self.__externalReadCallback(data)
+    
+    def start_thread(self):
+        self.__sender.start()
 
 class Color:
     WHITE = "#FFF"
@@ -527,6 +611,10 @@ class BuzzerControlApp:
 
         self.mainwindow = builder.get_object("rootFrame", master)
         
+        self.mainwindow.bind("<KeyPress>", self.keyPressed)
+        self.mainwindow.bind("<KeyRelease>", self.keyReleased)
+        self.__muted = False
+        
         self.iconpath = ImageTk.PhotoImage(file=path.join("assets", "icon.png"))
         self.mainwindow.wm_iconbitmap()
         self.mainwindow.iconphoto(False, self.iconpath)
@@ -538,9 +626,9 @@ class BuzzerControlApp:
 
         self.showBuzzerClosedFrame()
 
-        self.__serialController = SerialController(self.serialCallback)
+        self.__sendController = CommandSendController(self.readCallback)
 
-        self.__db = sqlite3.connect("buzzer.db")
+        self.__db = sqlite3.connect(PROJECT_PATH / "buzzer.db")
         self.__cursor = self.__db.cursor()  # type: ignore
 
         self.__questionManager = QuestionManager(self.__db, self.__cursor)
@@ -613,9 +701,30 @@ class BuzzerControlApp:
         self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)"""
 
     def run(self):
-        self.__serialController.start()
+        self.__sendController.start_thread()
 
         self.mainwindow.mainloop()
+        
+    def keyPressed(self, key):
+        if key.char == "m" and not self.__muted:
+            self.setVolume(0.0)
+            self.__muted = True
+            self.mainwindow.after(100, self.checkMute)
+        
+    def keyReleased(self, key):
+        if key.char == "m" and self.__muted:
+            self.setVolume(1.0)
+            self.__muted = False
+            
+    def checkMute(self):
+        if self.__muted:
+            self.setVolume(0.0)
+            self.mainwindow.after(100, self.checkMute)
+            
+    def setVolume(self, volume):
+        for ID in range(mixer.get_num_channels()):
+            channel = mixer.Channel(ID)
+            channel.set_volume(volume)
         
     def jumpRoundPrompt(self):
         rounds = self.__questionManager.getRounds()
@@ -875,7 +984,7 @@ class BuzzerControlApp:
         self.builder.get_object(
             "buzzerControlClosedTeamSelect").configure(values=teamData)
 
-        self.sendLongCommand(commands)
+        self.__sendController.multiSend(commands)
         
         if len(teamData) > 0:
             self.builder.get_object(
@@ -885,24 +994,6 @@ class BuzzerControlApp:
         messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
 
         #self.__scoreboardWidget.updateValues(self.__teamController.teams)
-    
-    def sendLongCommand(self, commands):
-        commandString = ";".join(commands)
-        if len(commandString) > 50:              
-            separatedCommands = [commands[0]]
-            currentIndex = 0
-            for command in commands[1:]:
-                if len(separatedCommands[currentIndex]) + len(command) + 1 > 50:
-                    currentIndex += 1
-                    separatedCommands.append(command)
-                else:
-                    separatedCommands[currentIndex] += f";{command}"
-                    
-            for smallCommand in separatedCommands:
-                self.__serialController.writeLine(smallCommand)
-                sleep(0.5)
-        else:
-            self.__serialController.writeLine(commandString)
         
     def restartSet(self):
         nextQ = self.__questionManager.restartSet()
@@ -925,7 +1016,7 @@ class BuzzerControlApp:
     def nextQuestion(self):
         questionData = self.__questionManager.advanceQuestion()
         self.handleNextQuestion(questionData)
-        self.__serialController.writeLine(f"{CommandID.RESET_LOCK}")
+        self.__sendController.singleSend(f"{CommandID.RESET_LOCK}")
 
     def bigPictureConfSave(self, saveData):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
@@ -1023,12 +1114,12 @@ class BuzzerControlApp:
         self.handleNextQuestion(nextQuestion)
 
     def buzzerClose(self):
-        self.__serialController.writeLine(f"{CommandID.CLOSE}")
+        self.__sendController.singleSend(f"{CommandID.CLOSE}")
         self.showBuzzerClosedFrame()
         self.__teamController.clearActive()
 
     def buzzerOpenAll(self):
-        self.__serialController.writeLine(f"{CommandID.OPEN}")
+        self.__sendController.singleSend(f"{CommandID.OPEN}")
         self.showBuzzerOpenFrame()
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
@@ -1044,8 +1135,7 @@ class BuzzerControlApp:
             self.__questionAidController.setBigPictureDisplay(
                 self.bigPicture.aidDisplay)
 
-            self.__teamController.setScoreboards(
-                self.__scoreboardWidget, self.bigPicture.scoreboardFrame)
+            self.__teamController.addScoreboard(self.bigPicture.scoreboardFrame)
             self.__teamController.updateScoreboards()
 
             self.bigPicture.setConfig(self.__bigPictureConfPanel.savedData)
@@ -1107,14 +1197,14 @@ class BuzzerControlApp:
             return
 
         teamID = int(selectValue.split(" - ")[0])
-        self.__serialController.writeLine(f"{CommandID.OPEN_TEAM} {teamID}")
+        self.__sendController.singleSend(f"{CommandID.OPEN_TEAM} {teamID}")
         self.showBuzzerOpenFrame()
 
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
 
     def buzzerOpenLockInd(self):
-        self.__serialController.writeLine(
+        self.__sendController.singleSend(
             f"{CommandID.OPEN_LOCK_IND} {self.__teamController.getActivePinIndex()}")
         self.showBuzzerOpenFrame()
 
@@ -1123,7 +1213,7 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
 
     def buzzerOpenLockTeam(self):
-        self.__serialController.writeLine(
+        self.__sendController.singleSend(
             f"{CommandID.OPEN_LOCK_TEAM} {self.__teamController.activeTeam}")
         self.showBuzzerOpenFrame()
 
@@ -1132,7 +1222,7 @@ class BuzzerControlApp:
         self.__teamController.clearActive()
 
     def resetBuzzers(self):
-        self.__serialController.writeLine(f"{CommandID.RESET_LOCK}")
+        self.__sendController.singleSend(f"{CommandID.RESET_LOCK}")
         self.showBuzzerClosedFrame()
         self.clearBuzzerAliasLabel()
         self.__teamController.clearActive()
@@ -1160,10 +1250,10 @@ class BuzzerControlApp:
         self.buzzed(teamID, -2)
         
     def buzzAsTeam(self):
-        self.__serialController.writeLine(f"{CommandID.BUZZED} 255")
+        self.__sendController.singleSend(f"{CommandID.BUZZED} 255")
         self.hostBuzzerTeamPrompt()
 
-    def serialCallback(self, string):
+    def readCallback(self, string):
         print(string)
         
         data = string.split()
@@ -1202,7 +1292,7 @@ class BuzzerControlApp:
             self.bigPicture.updateBuzzerAlias("", "")
 
     def buzzerIdentify(self, buzzerID):
-        self.__serialController.writeLine(f"{CommandID.IDENTIFY} {buzzerID}")
+        self.__sendController.singleSend(f"{CommandID.IDENTIFY} {buzzerID}")
         
     def buzzerIdentifyTeam(self):
         selectValue = self.builder.get_object(
@@ -1212,34 +1302,62 @@ class BuzzerControlApp:
             return
 
         teamID = int(selectValue.split(" - ")[0])
-        self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} {teamID}")
+        self.__sendController.singleSend(f"{CommandID.IDENTIFY_TEAM} {teamID}")
         
         self.__teamController.setActive(teamID, -1)
         self.updateBuzzerAliasLabel()
         self.showBuzzerBuzzedFrame()
         
     def buzzerStopIdentifyTeam(self):
-        self.__serialController.writeLine(f"{CommandID.IDENTIFY_TEAM} 255")
+        self.__sendController.singleSend(f"{CommandID.IDENTIFY_TEAM} 255")
         
     def buzzerFuncResend(self):
         commands = self.__teamController.getCommands()
         if len(commands) >= 0:
-            self.sendLongCommand(commands)
+            self.__sendController.multiSend(commands)
             messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
         else:
             messagebox.showerror("Team Setup Error", "The team configuration is empty, so cannot be sent to device.")
 
     def buzzerFuncLightOn(self):
-        self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 1")
+        self.__sendController.singleSend(f"{CommandID.LIGHT_SET} 1")
 
     def buzzerFuncLightOff(self):
-        self.__serialController.writeLine(f"{CommandID.LIGHT_SET} 0")
+        self.__sendController.singleSend(f"{CommandID.LIGHT_SET} 0")
 
     def buzzerFuncLightUpdate(self):
-        self.__serialController.writeLine(f"{CommandID.LIGHT_UPDATE}")
+        self.__sendController.singleSend(f"{CommandID.LIGHT_UPDATE}")
         
     def buzzerIdentifyAll(self):
-        self.__serialController.writeLine(f"{CommandID.IDENTIFY_ALL}")
+        self.__sendController.singleSend(f"{CommandID.IDENTIFY_ALL}")
+        
+    def popOutSoundboard(self):
+        popOut = PopOutWidget(self.mainwindow, "Soundboard")
+        
+        soundboardWidget = Soundboard(popOut, Sound)
+        soundboardWidget.pack(expand=True, fill="both")
+
+    def popOutBigPictureControl(self):
+        popOut = PopOutWidget(self.mainwindow, "Big Picture Control")
+        
+        controlFrame = createPopOutBigPictureControl(
+            popOut, 
+            self.showBigPictureQuestion,
+            self.showBigPictureRound,
+            self.showBigPictureScoreboard,
+            self.showBigPictureBlank,
+            self.showBigPictureTitle
+        )
+        
+        controlFrame.pack(expand=True, fill="both")
+
+    def popOutScoreboard(self):
+        popOut = PopOutWidget(self.mainwindow, "Scoreboard")
+        
+        scoreboardWidget = HostScoreboard(popOut, self.__teamController, self.showBigPictureScoreboard)
+        scoreboardWidget.pack(expand=True, fill="both")
+        
+        self.__teamController.addScoreboard(scoreboardWidget)
 
 if __name__ == "__main__":
     app = BuzzerControlApp()
