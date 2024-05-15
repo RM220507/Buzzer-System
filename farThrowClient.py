@@ -2,6 +2,7 @@ import socketio as sio
 from time import sleep
 import serial
 import serial.tools.list_ports as list_ports
+from serial import serialutil
 import logging
 
 logging.basicConfig(format="%(levelname)s - %(message)s",level=logging.INFO)
@@ -35,7 +36,10 @@ class SerialController:
         return serPort
 
     def checkBuffer(self):
-        return self.__port.in_waiting > 0
+        try:
+            return self.__port.in_waiting > 0
+        except serialutil.SerialException:
+            self.raiseException()       
 
     def getLine(self):
         return self.__port.readline().decode("utf-8")
@@ -75,16 +79,21 @@ class SerialController:
     def raiseException(self):
         logging.error("Disconnected from Micro:bit.")
         while not self.attemptConnection():
-            continue
+            logging.info("Attempting to connect to Micro:bit.")
+            sleep(2)
 
     def run(self):
         while True:
             try:
+                #if self.__port.is_open:
                 if self.checkBuffer():
                     data = self.getLine()
                     self.readCallback(data)
-            except:
+                #else:
+                #    self.raiseException()
+            except Exception as e:
                 self.raiseException()
+                print(e)
                 
     def readCallback(self, data):
         logging.debug("TRANSMIT from SERIAL: " + data)
