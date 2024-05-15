@@ -1,5 +1,5 @@
 import radio #type: ignore
-from microbit import button_a, pin1, pin0 #type: ignore
+from microbit import button_a, button_b, pin1, pin0, display #type: ignore
 from neopixel import NeoPixel
 from time import sleep_ms
 
@@ -44,6 +44,7 @@ class Buzzer:
         self.displayColor(ORANGE)
 
         self.__ID = id # get the ID before continuing with initialisation
+        self.__idString = str(hex(self.__ID))[2].upper()
 
         self.__state = "inactive"
         self.__locked = False
@@ -107,6 +108,9 @@ class Buzzer:
                 for i in range(3):
                     radio.send_bytes(bytes([50, self.__ID])) # broadcast event to controller and other buzzers (to tell them to deactive)
                     sleep_ms(10)
+                    
+            if button_b.is_pressed():
+                display.show(self.__idString, delay=1000, clear=True)
                     
             radioData = radio.receive_bytes()
             if not radioData:

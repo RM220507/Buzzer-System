@@ -2,18 +2,23 @@ import socketio as sio
 from time import sleep
 import serial
 import serial.tools.list_ports as list_ports
+import logging
+
+logging.basicConfig(format="%(levelname)s - %(message)s",level=logging.INFO)
 
 client = sio.Client()
 
 class SerialController:
-    def __init__(self):        
+    def __init__(self):
         self.attemptConnection()
 
     def attemptConnection(self):
         self.__port = self.findCOMport(516, 3368, 9600)
-        print(self.__port)
         if not self.__port.is_open:
-            self.raiseException()
+            return False
+        else:
+            logging.info("Connected to Micro:bit.")
+            return True
 
     def findCOMport(self, PID, VID, baud):
         serPort = serial.Serial(baudrate=baud)
@@ -35,18 +40,21 @@ class SerialController:
     def getLine(self):
         return self.__port.readline().decode("utf-8")
 
-    def single(self, command):
-        print("Received SINGLE: " + command)
+    def write(self, command):
         try:
             self.__port.write(bytes((command + "\n"), "utf-8"))
             return True
         except Exception as e:
             print(f"An error occured. Try restarting the application. {e}")
             input("Press ENTER to ignore this error. ")
-            
+
+    def single(self, command):
+        logging.debug("Received SINGLE: " + command)
+        self.write(command)
+        
     def multi(self, commands):
         commandString = ";".join(commands)
-        print("Received MULTI: " + commandString)
+        logging.debug("Received MULTI: " + commandString)
         if len(commandString) > 50:              
             separatedCommands = [commands[0]]
             currentIndex = 0
@@ -58,19 +66,19 @@ class SerialController:
                     separatedCommands[currentIndex] += f";{command}"
                     
             for smallCommand in separatedCommands:
-                if not self.single(smallCommand):
+                if not self.write(smallCommand):
                     break
                 sleep(0.5)
         else:
-            self.single(commandString)
-
+            self.write(commandString)
+            
     def raiseException(self):
-        input("No controller micro:bit was detected. Press ENTER to retry. ")
-        self.attemptConnection()
+        logging.error("Disconnected from Micro:bit.")
+        while not self.attemptConnection():
+            continue
 
     def run(self):
         while True:
-            #self.single("12 34 123")
             try:
                 if self.checkBuffer():
                     data = self.getLine()
@@ -79,21 +87,47 @@ class SerialController:
                 self.raiseException()
                 
     def readCallback(self, data):
-        print("TRANSMIT from SERIAL: " + data)
+        logging.debug("TRANSMIT from SERIAL: " + data)
         client.emit("receive", data)
 
 @client.event
 def connect():
-    print("Connected to Server.")
+    logging.info("Connected to Server.")
     
 @client.event
 def disconnect():
-    print("Disconnected from Server.")
+    logging.error("Disconnected from Server.")
+    
+def receiveUpdate(data):
+    logging.debug("Receiving update.")
+    
+    print("------------------------------------------------")
+    print("CURRENT QUESTION")
+    print(f"Question: {data['questionData'][0]}")
+    print(f"Answer: {data['questionData'][1]}")
+    print(f"Notes: {data['questionData'][2]}")
+    print(f"Points: CORRECT - {data['questionData'][3]}; INCORRECT - {data['questionData'][4]}")
+    print(f"Current Round: {data['roundData'][1]} ({data['roundData'][0]} of {data['numRounds']})")
+    print()
+    print("BIG PICTURE DISPLAY")
+    print(f"Displaying: {data['currentDisplay']}")
+    print()
+    print("CURRENT SCORES")
+    for score in data["scores"]:
+        print(f"{score[0]} - {score[1]}")
+    print("END OF UPDATE")
+    print("------------------------------------------------")
+    
+def receiveBuzz(data):
+    logging.debug("Receiving buzz notification.")
+    print(f"BUZZED: {data[0]} - {data[1]}")
 
 serialController = SerialController()
 
 client.on("single", serialController.single)
 client.on("multi", serialController.multi)
+client.on("update", receiveUpdate)
+client.on("buzz", receiveBuzz)
 
 SERVER_HOST = input("Input the hostname to connect to: ")
 SERVER_PORT = input("Input port: ")

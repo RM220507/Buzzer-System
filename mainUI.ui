@@ -908,6 +908,18 @@
                 </child>
               </object>
             </child>
+            <child>
+              <object class="customtkinter.CTkButton" id="buzzerFuncSendUpdateBtn" named="True">
+                <property name="command" type="command" cbtype="simple">sendUpdate</property>
+                <property name="text" translatable="yes">Send Update to Far Throw Clients</property>
+                <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
+                  <property name="side">top</property>
+                </layout>
+              </object>
+            </child>
           </object>
         </child>
       </object>

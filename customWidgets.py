@@ -591,6 +591,8 @@ class BigPicture(ctk.CTkToplevel):
         
         self.fullscreen = False
         
+        self.__currentDisplay = "blank"
+        
     def updateRound(self, roundIndex, totalRounds, roundName):
         self.roundCountLabel.configure(text=f"Round {roundIndex} of {totalRounds}")
         self.roundNameLabel.configure(text=roundName)
@@ -631,11 +633,15 @@ class BigPicture(ctk.CTkToplevel):
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
         
+        self.__currentDisplay = "blank"
+        
     def displayTitle(self):
         self.roundFrame.pack_forget()
         self.titleFrame.pack(expand=True, fill="both", side="top")
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
+        
+        self.__currentDisplay = "title"
         
     def displayRound(self):
         self.roundFrame.pack(expand=True, fill="both", side="top")
@@ -643,17 +649,27 @@ class BigPicture(ctk.CTkToplevel):
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
         
+        self.__currentDisplay = "round"
+        
     def displayQuestion(self):
         self.roundFrame.pack_forget()
         self.titleFrame.pack_forget()
         self.questionFrame.pack(expand=True, fill="both", side="top")
         self.scoreboardFrame.pack_forget()
         
+        self.__currentDisplay = "question"
+        
     def displayScoreboard(self):
         self.roundFrame.pack_forget()
         self.titleFrame.pack_forget()
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack(expand=True, fill="both", side="top")
+        
+        self.__currentDisplay = "scoreboard"
+        
+    @property
+    def currentDisplay(self):
+        self.__currentDisplay
         
     def updateBuzzerAlias(self, team, buzzer, color=Color.WHITE):
         if team == "" and buzzer == "":

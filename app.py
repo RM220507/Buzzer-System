@@ -83,6 +83,7 @@ class TeamController:
         
     def addScoreboard(self, widget):
         self.__scoreboards.append(widget)
+        self.updateScoreboards()
 
     @property
     def teams(self):
@@ -567,6 +568,12 @@ class FarThrowServer(threading.Thread):
     def singleSend(self, command):
         self.server.emit("single", command)
         
+    def sendUpdate(self, updateData):
+        self.server.emit("update", updateData)
+        
+    def sendBuzz(self, teamAlias, buzzerAlias):
+        self.server.emit("buzz", [teamAlias, buzzerAlias])
+        
     def run(self):
         eventlet.wsgi.server(eventlet.listen(("", 8000)), self.app)
         
@@ -590,8 +597,37 @@ class CommandSendController:
     def readCallback(self, data):
         self.__externalReadCallback(data)
     
-    def start_thread(self):
+    def startThread(self):
         self.__sender.start()
+        
+    def sendUpdate(self, questionManager, teams, bigPicture):
+        if not isinstance(self.__sender, FarThrowServer):
+            return
+        
+        if bigPicture is not None and bigPicture.winfo_exists:
+            bigPictureDisplay = bigPicture.currentDisplay()
+        else:
+            bigPictureDisplay = "closed"
+            
+        unsortedScores = {}
+        for team in teams:
+            unsortedScores[team.alias] = team.score
+        scores = sorted(unsortedScores.items(), key=lambda x:x[1], reverse=True)
+        
+        
+        updateData = {
+            "questionData" : questionManager.currentQuestion,
+            "roundData" : questionManager.currentRound,
+            "numRounds" : questionManager.numRounds,
+            "currentDisplay" : bigPictureDisplay,
+            "scores" : scores
+        }
+        
+        self.__sender.sendUpdate(updateData)
+            
+    def sendBuzz(self, teamAlias, buzzerAlias, activeColor):
+        if isinstance(self.__sender, FarThrowServer):
+            self.__sender.sendBuzz(teamAlias, buzzerAlias)
 
 class Color:
     WHITE = "#FFF"
@@ -701,7 +737,7 @@ class BuzzerControlApp:
         self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)"""
 
     def run(self):
-        self.__sendController.start_thread()
+        self.__sendController.startThread()
 
         self.mainwindow.mainloop()
         
@@ -1027,7 +1063,8 @@ class BuzzerControlApp:
         self.buzzerClose()
         self.__teamController.clearActive()
         self.updateQuestionLabels(questionData)
-
+        self.sendUpdate()
+        
         if questionData[6] == 0:
             if questionData[5] is None:
                 self.bigPictureTriggerEvent("qStart")
@@ -1047,6 +1084,9 @@ class BuzzerControlApp:
             self.showBuzzerAdvanceRoundFrame()
         elif questionData[6] == 3:
             self.updateRoundLabel()
+            
+    def sendUpdate(self):
+        self.__sendController.sendUpdate(self.__questionManager, self.__teamController.teams, self.bigPicture)
 
     def updateQuestionLabels(self, questionData):
         self.builder.get_object("questionPointsLabel").configure(
@@ -1273,6 +1313,7 @@ class BuzzerControlApp:
         self.__teamController.setActive(teamID, buzzerID)
         self.updateBuzzerAliasLabel()
         self.showBuzzerBuzzedFrame()
+        self.__sendController.sendBuzz(*self.__teamController.getActiveAlias())
         mixer.Sound.play(Sound.BUZZED)
             
     def updateBuzzerAliasLabel(self):
