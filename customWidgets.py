@@ -63,14 +63,14 @@ def createPopOutBigPictureControl(master, showBigPictureQuestion, showBigPicture
         bigPictureSetViewFrame)
     bigPictureSetQuestionButton.configure(text='Display Question')
     bigPictureSetQuestionButton.pack(
-        fill="x", padx=5, pady=5, side="top")
+        fill="both", padx=5, pady=5, side="top", expand=True)
     bigPictureSetQuestionButton.configure(
         command=showBigPictureQuestion)
     
     bigPictureSetRoundButton = ctk.CTkButton(bigPictureSetViewFrame)
     bigPictureSetRoundButton.configure(text='Display Round')
     bigPictureSetRoundButton.pack(
-        fill="x", padx=5, pady=5, side="top")
+        fill="both", padx=5, pady=5, side="top", expand=True)
     bigPictureSetRoundButton.configure(
         command=showBigPictureRound)
     
@@ -78,20 +78,20 @@ def createPopOutBigPictureControl(master, showBigPictureQuestion, showBigPicture
         bigPictureSetViewFrame)
     bigPictureSetScoreboardButton.configure(text='Display Scoreboard')
     bigPictureSetScoreboardButton.pack(
-        fill="x", padx=5, pady=5, side="top")
+        fill="both", padx=5, pady=5, side="top", expand=True)
     bigPictureSetScoreboardButton.configure(
         command=showBigPictureScoreboard)
     
     bigPictureSetBlankButton = ctk.CTkButton(bigPictureSetViewFrame)
     bigPictureSetBlankButton.configure(text='Display Blank')
     bigPictureSetBlankButton.pack(
-        fill="x", padx=5, pady=5, side="top")
+        fill="both", padx=5, pady=5, side="top", expand=True)
     bigPictureSetBlankButton.configure(
         command=showBigPictureBlank)
     
     bigPictureSetTitleBtn = ctk.CTkButton(bigPictureSetViewFrame)
     bigPictureSetTitleBtn.configure(text='Display Title')
-    bigPictureSetTitleBtn.pack(fill="x", padx=5, pady=5, side="top")
+    bigPictureSetTitleBtn.pack(fill="both", padx=5, pady=5, side="top", expand=True)
     bigPictureSetTitleBtn.configure(command=showBigPictureTitle)
     
     return bigPictureSetViewFrame
@@ -669,7 +669,7 @@ class BigPicture(ctk.CTkToplevel):
         
     @property
     def currentDisplay(self):
-        self.__currentDisplay
+        return self.__currentDisplay
         
     def updateBuzzerAlias(self, team, buzzer, color=Color.WHITE):
         if team == "" and buzzer == "":

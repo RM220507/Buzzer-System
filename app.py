@@ -605,7 +605,7 @@ class CommandSendController:
             return
         
         if bigPicture is not None and bigPicture.winfo_exists:
-            bigPictureDisplay = bigPicture.currentDisplay()
+            bigPictureDisplay = bigPicture.currentDisplay
         else:
             bigPictureDisplay = "closed"
             
@@ -613,7 +613,6 @@ class CommandSendController:
         for team in teams:
             unsortedScores[team.alias] = team.score
         scores = sorted(unsortedScores.items(), key=lambda x:x[1], reverse=True)
-        
         
         updateData = {
             "questionData" : questionManager.currentQuestion,
