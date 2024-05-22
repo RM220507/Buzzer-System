@@ -536,178 +536,198 @@
           <object class="customtkinter.CTkTabview.Tab" id="bigPictureConfTab" named="True">
             <property name="label" translatable="yes">Big Picture</property>
             <child>
-              <object class="customtkinter.CTkFrame" id="bigPictureOpenFrame" named="True">
+              <object class="customtkinter.CTkFrame" id="bigPictureControlFrame" named="True">
                 <layout manager="pack">
                   <property name="fill">x</property>
-                  <property name="padx">5</property>
-                  <property name="pady">5</property>
-                  <property name="side">top</property>
-                </layout>
-                <containerlayout manager="grid">
-                  <property type="col" id="0" name="weight">1</property>
-                  <property type="col" id="1" name="weight">1</property>
-                </containerlayout>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureOpenButton" named="True">
-                    <property name="command" type="command" cbtype="simple">openBigPicture</property>
-                    <property name="text" translatable="yes">Open Big Picture</property>
-                    <layout manager="grid">
-                      <property name="column">1</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="rowspan">2</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureFullscreenButton" named="True">
-                    <property name="command" type="command" cbtype="simple">toggleBigPictureFullscreen</property>
-                    <property name="text" translatable="yes">Toggle Fullscreen</property>
-                    <layout manager="grid">
-                      <property name="column">0</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureCloseButton" named="True">
-                    <property name="command" type="command" cbtype="simple">closeBigPicture</property>
-                    <property name="text" translatable="yes">Close Big Picture</property>
-                    <layout manager="grid">
-                      <property name="column">0</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">1</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="customtkinter.CTkFrame" id="bigPictureTitleSetFrame" named="True">
-                <layout manager="pack">
-                  <property name="expand">false</property>
-                  <property name="fill">x</property>
-                  <property name="padx">5</property>
-                  <property name="pady">5</property>
-                  <property name="side">top</property>
-                </layout>
-                <containerlayout manager="grid">
-                  <property type="col" id="0" name="weight">1</property>
-                </containerlayout>
-                <child>
-                  <object class="customtkinter.CTkEntry" id="bigPictureConfTitleEntry" named="True">
-                    <property name="placeholder_text">Title</property>
-                    <layout manager="grid">
-                      <property name="column">0</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkEntry" id="bigPictureConfSubtitleEntry" named="True">
-                    <property name="placeholder_text">Subtitle</property>
-                    <layout manager="grid">
-                      <property name="column">0</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">1</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureTitleSetButton" named="True">
-                    <property name="command" type="command" cbtype="simple">setBigPictureTitle</property>
-                    <property name="text" translatable="yes">Save Changes</property>
-                    <layout manager="grid">
-                      <property name="column">0</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">2</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureSetTitleButton" named="True">
-                    <property name="command" type="command" cbtype="simple">showBigPictureTitle</property>
-                    <property name="text" translatable="yes">Display Title</property>
-                    <layout manager="grid">
-                      <property name="column">1</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="row">0</property>
-                      <property name="rowspan">3</property>
-                      <property name="sticky">nsew</property>
-                    </layout>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="customtkinter.CTkFrame" id="bigPictureSetViewFrame" named="True">
-                <layout manager="pack">
-                  <property name="fill">x</property>
-                  <property name="padx">5</property>
-                  <property name="pady">5</property>
                   <property name="side">top</property>
                 </layout>
                 <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureSetQuestionButton" named="True">
-                    <property name="command" type="command" cbtype="simple">showBigPictureQuestion</property>
-                    <property name="text" translatable="yes">Display Question</property>
+                  <object class="customtkinter.CTkFrame" id="bigPictureOpenFrame" named="True">
                     <layout manager="pack">
                       <property name="fill">x</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="side">top</property>
                     </layout>
+                    <containerlayout manager="grid">
+                      <property type="col" id="0" name="weight">1</property>
+                      <property type="col" id="1" name="weight">1</property>
+                    </containerlayout>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureOpenButton" named="True">
+                        <property name="command" type="command" cbtype="simple">openBigPicture</property>
+                        <property name="text" translatable="yes">Open Big Picture</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="rowspan">2</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureFullscreenButton" named="True">
+                        <property name="command" type="command" cbtype="simple">toggleBigPictureFullscreen</property>
+                        <property name="text" translatable="yes">Toggle Fullscreen</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureCloseButton" named="True">
+                        <property name="command" type="command" cbtype="simple">closeBigPicture</property>
+                        <property name="text" translatable="yes">Close Big Picture</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureSetRoundButton" named="True">
-                    <property name="command" type="command" cbtype="simple">showBigPictureRound</property>
-                    <property name="text" translatable="yes">Display Round</property>
+                  <object class="customtkinter.CTkFrame" id="bigPictureTitleSetFrame" named="True">
                     <layout manager="pack">
+                      <property name="expand">false</property>
                       <property name="fill">x</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="side">top</property>
                     </layout>
+                    <containerlayout manager="grid">
+                      <property type="col" id="0" name="weight">1</property>
+                    </containerlayout>
+                    <child>
+                      <object class="customtkinter.CTkEntry" id="bigPictureConfTitleEntry" named="True">
+                        <property name="placeholder_text">Title</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkEntry" id="bigPictureConfSubtitleEntry" named="True">
+                        <property name="placeholder_text">Subtitle</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">1</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureTitleSetButton" named="True">
+                        <property name="command" type="command" cbtype="simple">setBigPictureTitle</property>
+                        <property name="text" translatable="yes">Save Changes</property>
+                        <layout manager="grid">
+                          <property name="column">0</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">2</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetTitleButton" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureTitle</property>
+                        <property name="text" translatable="yes">Display Title</property>
+                        <layout manager="grid">
+                          <property name="column">1</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="row">0</property>
+                          <property name="rowspan">3</property>
+                          <property name="sticky">nsew</property>
+                        </layout>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureSetScoreboardButton" named="True">
-                    <property name="command" type="command" cbtype="simple">showBigPictureScoreboard</property>
-                    <property name="text" translatable="yes">Display Scoreboard</property>
+                  <object class="customtkinter.CTkFrame" id="bigPictureSetViewFrame" named="True">
                     <layout manager="pack">
                       <property name="fill">x</property>
                       <property name="padx">5</property>
                       <property name="pady">5</property>
                       <property name="side">top</property>
                     </layout>
-                  </object>
-                </child>
-                <child>
-                  <object class="customtkinter.CTkButton" id="bigPictureSetBlankButton" named="True">
-                    <property name="command" type="command" cbtype="simple">showBigPictureBlank</property>
-                    <property name="text" translatable="yes">Display Blank</property>
-                    <layout manager="pack">
-                      <property name="fill">x</property>
-                      <property name="padx">5</property>
-                      <property name="pady">5</property>
-                      <property name="side">top</property>
-                    </layout>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetQuestionButton" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureQuestion</property>
+                        <property name="text" translatable="yes">Display Question</property>
+                        <layout manager="pack">
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetRoundButton" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureRound</property>
+                        <property name="text" translatable="yes">Display Round</property>
+                        <layout manager="pack">
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetScoreboardButton" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureScoreboard</property>
+                        <property name="text" translatable="yes">Display Scoreboard</property>
+                        <layout manager="pack">
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetBlankButton" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureBlank</property>
+                        <property name="text" translatable="yes">Display Blank</property>
+                        <layout manager="pack">
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="customtkinter.CTkButton" id="bigPictureSetTitleBtn" named="True">
+                        <property name="command" type="command" cbtype="simple">showBigPictureTitle</property>
+                        <property name="text" translatable="yes">Display Title</property>
+                        <layout manager="pack">
+                          <property name="fill">x</property>
+                          <property name="padx">5</property>
+                          <property name="pady">5</property>
+                          <property name="side">top</property>
+                        </layout>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -834,6 +854,70 @@
                     </layout>
                   </object>
                 </child>
+              </object>
+            </child>
+            <child>
+              <object class="customtkinter.CTkFrame" id="buzzerFuncPopup" named="True">
+                <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
+                  <property name="side">top</property>
+                </layout>
+                <containerlayout manager="grid">
+                  <property type="col" id="all" name="weight">1</property>
+                </containerlayout>
+                <child>
+                  <object class="customtkinter.CTkButton" id="popOutBigPictureControlBtn" named="True">
+                    <property name="command" type="command" cbtype="simple">popOutBigPictureControl</property>
+                    <property name="text" translatable="yes">Pop Out Big Picture Controls</property>
+                    <layout manager="grid">
+                      <property name="column">0</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkButton" id="popOutScoreboardBtn" named="True">
+                    <property name="command" type="command" cbtype="simple">popOutScoreboard</property>
+                    <property name="text" translatable="yes">Pop Out Scoreboard</property>
+                    <layout manager="grid">
+                      <property name="column">1</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="customtkinter.CTkButton" id="popOutSoundboardBtn" named="True">
+                    <property name="command" type="command" cbtype="simple">popOutSoundboard</property>
+                    <property name="text" translatable="yes">Pop Out Soundboard</property>
+                    <layout manager="grid">
+                      <property name="column">2</property>
+                      <property name="padx">5</property>
+                      <property name="pady">5</property>
+                      <property name="row">0</property>
+                      <property name="sticky">nsew</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="customtkinter.CTkButton" id="buzzerFuncSendUpdateBtn" named="True">
+                <property name="command" type="command" cbtype="simple">sendUpdate</property>
+                <property name="text" translatable="yes">Send Update to Far Throw Clients</property>
+                <layout manager="pack">
+                  <property name="fill">x</property>
+                  <property name="padx">5</property>
+                  <property name="pady">5</property>
+                  <property name="side">top</property>
+                </layout>
               </object>
             </child>
           </object>

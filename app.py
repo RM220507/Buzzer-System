@@ -17,6 +17,7 @@ import sys
 from PIL import ImageTk
 import socketio as sio
 import eventlet
+from engineio.async_drivers import gevent
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "mainUI.ui"
