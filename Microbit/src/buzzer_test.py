@@ -1,4 +1,4 @@
-from microbit import button_a, pin1, pin0 #type: ignore
+from microbit import button_a, pin1, pin0, pin2 #type: ignore
 from neopixel import NeoPixel
 import time
 
@@ -18,6 +18,8 @@ class BuzzerTest:
 
         self.__pixelCount = pixelCount
         self.__pixels = NeoPixel(neopixelPin, pixelCount)
+        
+        pin2.write_digital(1)
 
         self.updatePixels()
 

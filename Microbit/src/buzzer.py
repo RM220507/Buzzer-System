@@ -1,5 +1,5 @@
 import radio #type: ignore
-from microbit import button_a, button_b, pin1, pin0, display #type: ignore
+from microbit import button_a, button_b, pin1, pin0, display, pin2 #type: ignore
 from neopixel import NeoPixel
 from time import sleep_ms
 
@@ -51,6 +51,8 @@ class Buzzer:
 
         self.__teamID = None
         self.__colorProfile = DEFAULT_COLOR_PROFILE
+        
+        pin2.write_digital(1)
 
     def open(self):
         if self.__locked: # only open the buzer if it wasn't already locked

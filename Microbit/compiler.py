@@ -72,6 +72,13 @@ def main():
     print("Ryan Mitcham 2024")
     print("---------------------------------------")
     
+    is_test = input_bool("Flash test? [Y/N] ", "Y")
+    if is_test:
+        flash_file("Test", "src/buzzer_test.py")
+        print("---------------------------------------")
+        print("Finished flash operation.")
+        return
+    
     # Get the values of what to flash
     print("Initial Setup:")
     flash_controller = not input_bool("Flash controller? [Y/N] ", "N")
