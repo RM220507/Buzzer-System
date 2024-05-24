@@ -24,5 +24,6 @@
             "name": "Buzzer DB",
             "database": "${workspaceFolder:Buzzer System}/buzzer.db"
         }
-    ]
+    ],
+    "iis.configDir": ""
 }
