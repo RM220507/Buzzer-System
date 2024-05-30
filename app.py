@@ -19,7 +19,7 @@ import socketio as sio
 import eventlet
 
 PROJECT_PATH = pathlib.Path(__file__).parent
-PROJECT_UI = PROJECT_PATH / "mainUI.ui"
+PROJECT_UI = PROJECT_PATH / "assets/mainUI.ui"
 
 mixer.init()
 
@@ -663,7 +663,7 @@ class BuzzerControlApp:
 
         self.__sendController = CommandSendController(self.readCallback)
 
-        self.__db = sqlite3.connect(PROJECT_PATH / "buzzer.db")
+        self.__db = sqlite3.connect(PROJECT_PATH / "assets" / "buzzer.db")
         self.__cursor = self.__db.cursor()  # type: ignore
 
         self.__questionManager = QuestionManager(self.__db, self.__cursor)

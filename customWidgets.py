@@ -7,6 +7,7 @@ from pygame import mixer
 from PIL import ImageTk
 import json
 from os import path
+import importlib
 
 mixer.init()
 
@@ -547,41 +548,7 @@ class BigPicture(ctk.CTkToplevel):
         
         fonts = Font()
         
-        # QUESTION FRAME
-        self.questionFrame = ctk.CTkFrame(self, bg_color=Color.BLACK, corner_radius=0, fg_color=Color.BLACK)
-        
-        self.questionLabel = ctk.CTkLabel(self.questionFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
-        self.questionLabel.pack(expand=True, side="top")
-        
-        self.aidDisplay = BigPictureAidDisplay(self.questionFrame)
-        self.aidDisplay.pack(expand=True, fill="both", padx=10, pady=10)
-        
-        # ROUND FRAME
-        self.roundFrame = ctk.CTkFrame(self, bg_color=Color.BLACK, fg_color=Color.BLACK)
-        
-        self.roundContainerFrame = ctk.CTkFrame(self.roundFrame, bg_color=Color.BLACK, fg_color=Color.BLACK)
-        self.roundContainerFrame.pack(expand=True, side="top")
-        
-        self.roundCountLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.SMALL, wraplength=1000, text_color=Color.WHITE)
-        self.roundCountLabel.pack(side="top")
-        
-        self.roundNameLabel = ctk.CTkLabel(self.roundContainerFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
-        self.roundNameLabel.pack(expand=False, side="top")
-        
-        # TITLE FRAME
-        self.titleFrame = ctk.CTkFrame(self, bg_color=Color.BLACK, fg_color=Color.BLACK)
-
-        self.titleContainerFrame = ctk.CTkFrame(self.titleFrame, bg_color=Color.BLACK, fg_color=Color.BLACK)
-        self.titleContainerFrame.pack(expand=True, side="top")
-
-        self.titleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.LARGE, wraplength=1000, text_color=Color.WHITE)
-        self.titleLabel.pack(expand=True, side="top")
-        
-        self.subtitleLabel = ctk.CTkLabel(self.titleContainerFrame, text="", font=fonts.SMALL, wraplength=1000, text_color=Color.WHITE)
-        self.subtitleLabel.pack(side="top")
-        
-        # SCOREBOARD FRAME
-        self.scoreboardFrame = BigPictureScoreboard(self)
+        self.loadLayout(firstSetup=True)
         
         # BUZZED LABEL
         self.buzzedLabel = ctk.CTkLabel(self, bg_color=Color.BLACK, fg_color=Color.BLACK, text="", font=fonts.EXTRA_LARGE, wraplength=1500, text_color=Color.WHITE)
@@ -593,21 +560,69 @@ class BigPicture(ctk.CTkToplevel):
         
         self.__currentDisplay = "blank"
         
+        self.__title = ""
+        
+    def loadLayout(self, name=None, firstSetup=False):
+        self.__taggedWidgets = {
+            "title" : [],
+            "subtitle" : [],
+            "roundName" : [],
+            "roundCount" : [],
+            "question" : [],
+            "buzzer" : []
+        }
+        
+        self.__aidDisplay = None
+        
+        if not firstSetup:
+            self.titleFrame.destroy()
+            self.roundFrame.destroy()
+            self.questionFrame.destroy()
+            self.scoreboardFrame.destroy()
+        
+        layoutContrustor = importlib.import_module("assets.bigPictureLayouts.default")
+        
+        self.titleFrame = layoutContrustor.createTitleFrame(self)
+        self.roundFrame = layoutContrustor.createRoundFrame(self)
+        self.questionFrame = layoutContrustor.createQuestionFrame(self)
+        self.scoreboardFrame = layoutContrustor.createScoreboardFrame(self)
+        self.blankFrame = layoutContrustor.createBlankFrame(self)
+        
+        self.displayBlank()
+        
+        ## NEED WAY TO LOAD & HANDLING SCOREBOARDS
+        
+    def tagWidget(self, type, widget):
+        if type in self.__taggedWidgets:
+            self.__taggedWidgets[type].append(widget)
+        elif type == "scoreboard":
+            pass
+        elif type == "questionAid":
+            self.__aidDisplay = widget
+        
     def updateRound(self, roundIndex, totalRounds, roundName):
-        self.roundCountLabel.configure(text=f"Round {roundIndex} of {totalRounds}")
-        self.roundNameLabel.configure(text=roundName)
+        for label in self.__taggedWidgets["roundCount"]:
+            label.configure(text=f"Round {roundIndex} of {totalRounds}")
+            
+        for label in self.__taggedWidgets["roundName"]:
+            label.configure(text=roundName)
         
     def updateTitle(self, title, subtitle):
-        self.titleLabel.configure(text=title)
-        self.subtitleLabel.configure(text=subtitle)
+        for label in self.__taggedWidgets["title"]:
+            label.configure(text=title)
+            
+        for label in self.__taggedWidgets["subtitle"]:
+            label.configure(text=subtitle)
         
+        self.__title = title
         self.triggerEvent("titleSet")
         
     def getTitle(self):
-        return self.titleLabel.cget("text")
+        return self.__title
         
     def updateQuestion(self, question):
-        self.questionLabel.configure(text=question)
+        for label in self.__taggedWidgets["question"]:
+            label.configure(text=question)
         
     def toggleFullscreen(self):
         if self.fullscreen:
@@ -632,6 +647,7 @@ class BigPicture(ctk.CTkToplevel):
         self.titleFrame.pack_forget()
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
+        self.blankFrame.pack(expand=True, fill="both", side="top")
         
         self.__currentDisplay = "blank"
         
@@ -640,6 +656,7 @@ class BigPicture(ctk.CTkToplevel):
         self.titleFrame.pack(expand=True, fill="both", side="top")
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
+        self.blankFrame.pack_forget()
         
         self.__currentDisplay = "title"
         
@@ -648,6 +665,7 @@ class BigPicture(ctk.CTkToplevel):
         self.titleFrame.pack_forget()
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack_forget()
+        self.blankFrame.pack_forget()
         
         self.__currentDisplay = "round"
         
@@ -656,6 +674,7 @@ class BigPicture(ctk.CTkToplevel):
         self.titleFrame.pack_forget()
         self.questionFrame.pack(expand=True, fill="both", side="top")
         self.scoreboardFrame.pack_forget()
+        self.blankFrame.pack_forget()
         
         self.__currentDisplay = "question"
         
@@ -664,8 +683,13 @@ class BigPicture(ctk.CTkToplevel):
         self.titleFrame.pack_forget()
         self.questionFrame.pack_forget()
         self.scoreboardFrame.pack(expand=True, fill="both", side="top")
+        self.blankFrame.pack_forget()
         
         self.__currentDisplay = "scoreboard"
+        
+    @property
+    def aidDisplay(self):
+        return self.__aidDisplay
         
     @property
     def currentDisplay(self):
@@ -673,18 +697,20 @@ class BigPicture(ctk.CTkToplevel):
         
     def updateBuzzerAlias(self, team, buzzer, color=Color.WHITE):
         if team == "" and buzzer == "":
-            self.buzzedLabel.configure(text="", text_color=color)
-            return
-        
-        if self.__config["buzzerData"].get("display"):
-            if self.__config["buzzerData"].get("teamName") and self.__config["buzzerData"].get("buzzerName"):
-                self.buzzedLabel.configure(text=f"{team} - {buzzer}", text_color=color)
-            elif self.__config["buzzerData"].get("teamName"):
-                self.buzzedLabel.configure(text=team, text_color=color)
-            elif self.__config["buzzerData"].get("buzzerName"):
-                self.buzzedLabel.configure(text=buzzer, text_color=color)
+            labelText = ""
         else:
-            self.buzzedLabel.configure(text="", text_color=color)
+            if self.__config["buzzerData"].get("display"):
+                if self.__config["buzzerData"].get("teamName") and self.__config["buzzerData"].get("buzzerName"):
+                    labelText = f"{team} - {buzzer}"
+                elif self.__config["buzzerData"].get("teamName"):
+                    labelText = team
+                elif self.__config["buzzerData"].get("buzzerName"):
+                    labelText = buzzer
+            else:
+                labelText = ""
+            
+        for label in self.__taggedWidgets["buzzer"]:
+            label.configure(text=labelText, text_color=color)
         
     def setConfig(self, saveData):
         self.__config = saveData
