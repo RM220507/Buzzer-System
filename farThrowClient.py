@@ -5,7 +5,7 @@ import serial.tools.list_ports as list_ports
 from serial import serialutil
 import logging
 
-logging.basicConfig(format="%(levelname)s - %(message)s",level=logging.INFO)
+logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.INFO)
 
 client = sio.Client()
 
