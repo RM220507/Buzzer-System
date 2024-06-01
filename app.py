@@ -6,7 +6,7 @@ import serial.tools.list_ports as list_ports
 import threading
 import sqlite3
 from pygame import mixer
-from customWidgets import TeamSetup, Selector, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController, BigPictureConfigurationPanel, PopOutWidget, createPopOutBigPictureControl
+from customWidgets import TeamSetup, Selector, ConfigurationSetCreator, BigPicture, HostAidDisplay, HostScoreboard, Soundboard, MacroController, BigPictureConfigurationPanel, PopOutWidget, createPopOutBigPictureControl
 import customtkinter as ctk
 from os import path
 from tkinter import messagebox
@@ -17,6 +17,7 @@ import sys
 from PIL import ImageTk
 import socketio as sio
 import eventlet
+from glob import glob
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "assets/mainUI.ui"
@@ -694,7 +695,7 @@ class BuzzerControlApp:
 
         self.__teamController.setScoreboards(self.__scoreboardWidget)
         
-        self.__bigPictureConfPanel = BigPictureConfigurationPanel(builder.get_object("bigPictureConfTab"), self.bigPictureConfSave, self.bigPictureConfSaveDB, self.bigPictureConfLoadDBPrompt)
+        self.__bigPictureConfPanel = BigPictureConfigurationPanel(builder.get_object("bigPictureConfTab"), self.bigPictureConfSave, self.bigPictureConfSaveDB, self.bigPictureConfLoadDBPrompt, self.loadBigPictureLayoutPrompt)
         self.__bigPictureConfPanel.pack(padx=5, pady=5, fill="x")
 
         self.__soundboardWidget = Soundboard(
@@ -860,6 +861,11 @@ class BuzzerControlApp:
     def bigPictureConfSaveDB(self, data):
         inputDialog = ctk.CTkInputDialog(title="Big Picture Configuration Name", text="Name your Big Picture Configuration")
         
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            layoutName = self.bigPicture.layoutName
+        else:
+            layoutName = "DEFAULT"
+        
         name = inputDialog.get_input()
         if name != None or name == "":
             name = name[:30]
@@ -871,11 +877,11 @@ class BuzzerControlApp:
             "SELECT 1 FROM BigPictureConfiguration WHERE Name = ?", (name,))
         if self.__cursor.fetchone():
             if messagebox.askyesno("Overwrite Warning", "A Colour Palette with this name already exists. Overwrite it?"):
-                self.__cursor.execute("UPDATE BigPictureConfiguration SET Data = ? WHERE Name = ?", (data, name))
+                self.__cursor.execute("UPDATE BigPictureConfiguration SET Data = ?, Layout = ? WHERE Name = ?", (data, layoutName, name))
             else:
                 return
         else:
-            self.__cursor.execute("INSERT INTO BigPictureConfiguration (Name, Data) VALUES (?, ?)", (name, data))
+            self.__cursor.execute("INSERT INTO BigPictureConfiguration (Name, Data, Layout) VALUES (?, ?, ?)", (name, data, layoutName))
         
         self.__db.commit() # type: ignore
         
@@ -895,10 +901,19 @@ class BuzzerControlApp:
     def bigPictureConfLoadDB(self, value):
         configID = int(value.split()[0])
         
-        self.__cursor.execute("SELECT Data FROM BigPictureConfiguration WHERE ID = ?", (configID,))
-        data = self.__cursor.fetchone()[0]
+        self.__cursor.execute("SELECT Data, Layout FROM BigPictureConfiguration WHERE ID = ?", (configID,))
+        details = self.__cursor.fetchone()
         
-        self.__bigPictureConfPanel.loadDB(json.loads(data))
+        self.__bigPictureConfPanel.loadDB(json.loads(details[0]))
+        
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.loadLayout(details[1])
+        else:
+            if details[1] is None:
+                layoutName = "DEFAULT"
+            else:
+                layoutName = details[1]
+            messagebox.showerror("Layout Load Error", f"Attempted to load the Big Picture Display Layout '{layoutName}'. Big Picture Display must be open to load a layout.")
         
     def loadConfigSetPrompt(self):
         self.__cursor.execute("SELECT ID, Name FROM ConfigurationSet")
@@ -917,6 +932,40 @@ class BuzzerControlApp:
         self.bigPictureConfLoadDB(f"{configs[2]} - Temp")
         self.loadTeamConfiguration(f"{configs[1]} - Temp")
         self.loadQuestionSet(f"{configs[0]} - Temp")
+        
+    def saveConfigSetPrompt(self):
+        questionSets = self.__questionManager.getSets()
+        
+        self.__cursor.execute("SELECT ID, Name FROM Configuration")
+        teamConfigs = [f"{config[0]} - {config[1]}" for config in self.__cursor.fetchall()]
+        
+        self.__cursor.execute("SELECT ID, Name FROM BigPictureConfiguration")
+        bigPictureConfigs = [f"{config[0]} - {config[1]}" for config in self.__cursor.fetchall()]
+        
+        self.selectTopLevel = ConfigurationSetCreator(
+            self.mainwindow,
+            questionSets,
+            teamConfigs,
+            bigPictureConfigs,
+            self.saveConfigSet
+        )
+        
+    def saveConfigSet(self, name, questionSet, teamConfig, bigPictureConfig):
+        questionSetID = int(questionSet.split()[0])
+        teamConfigID = int(teamConfig.split()[0])
+        bigPictureConfigID = int(bigPictureConfig.split()[0])
+        
+        self.__cursor.execute(
+            "SELECT 1 FROM ConfigurationSet WHERE Name = ?", (name,))
+        if self.__cursor.fetchone():
+            if messagebox.askyesno("Overwrite Warning", "A Configuration Set with this name already exists. Overwrite it?"):
+                self.__cursor.execute("UPDATE ConfigurationSet SET QuestionSetID = ?, TeamConfigID = ?, BigPictureConfigID = ? WHERE Name = ?", (questionSetID, teamConfigID, bigPictureConfigID, name))
+            else:
+                return
+        else:
+            self.__cursor.execute("INSERT INTO ConfigurationSet (Name, QuestionSetID, TeamConfigID, BigPictureConfigID) VALUES (?, ?, ?, ?)", (name, questionSetID, teamConfigID, bigPictureConfigID))
+        
+        self.__db.commit()
         
     def loadTeamConfigurationPrompt(self, customCallback=None):
         self.__cursor.execute("SELECT ID, Name FROM Configuration")
@@ -1174,8 +1223,7 @@ class BuzzerControlApp:
             self.__questionAidController.setBigPictureDisplay(
                 self.bigPicture.aidDisplay)
 
-            self.__teamController.addScoreboard(self.bigPicture.scoreboardFrame)
-            self.__teamController.updateScoreboards()
+            self.__teamController.addScoreboard(self.bigPicture)
 
             self.bigPicture.setConfig(self.__bigPictureConfPanel.savedData)
 
@@ -1187,6 +1235,30 @@ class BuzzerControlApp:
             self.bigPicture.triggerEvent("opened")
         else:
             self.bigPicture.focus()
+            
+    def loadBigPictureLayout(self, name):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.bigPicture.loadLayout(name)
+            
+            self.__questionAidController.setBigPictureDisplay(self.bigPicture.aidDisplay)
+            
+            self.updateRoundLabel()
+            self.updateQuestionLabels(self.__questionManager.currentQuestion)
+            
+            self.setBigPictureTitle()
+        else:
+            messagebox.showerror("Layout Load Error", "The Big Picture Display must be open to load a layout.")
+
+    def loadBigPictureLayoutPrompt(self):
+        if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            
+            availableFiles = glob("assets/bigPictureLayouts/*.py")
+            availableFiles = [path.splitext(path.basename(file))[0] for file in availableFiles]
+            availableFiles.append("DEFAULT")
+            
+            self.selectTopLevel = Selector(self.mainwindow, availableFiles, self.loadBigPictureLayout)
+        else:
+            messagebox.showerror("Layout Load Error", "The Big Picture Display must be open to load a layout.")
 
     def showBuzzerOpenFrame(self):
         self.builder.get_object("buzzerControlWaitingFrame").pack(

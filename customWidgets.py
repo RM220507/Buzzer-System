@@ -375,7 +375,7 @@ class BigPictureAidDisplay(ctk.CTkFrame):
             messagebox.showerror("Time Error", "Time supplied is beyond end of media.")
 
 class BigPictureConfigurationPanel(ctk.CTkFrame):
-    def __init__(self, master, saveCallback, saveDBCallback, loadDBCallback, **kwargs):
+    def __init__(self, master, saveCallback, saveDBCallback, loadDBCallback, loadLayoutCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.__saveCallback = saveCallback
@@ -405,6 +405,8 @@ class BigPictureConfigurationPanel(ctk.CTkFrame):
         
         self.__displayBuzzerName = ctk.CTkCheckBox(aliasFrame, text="Display Buzzer Name")
         self.__displayBuzzerName.grid(row=2, column=0, sticky="W", padx=5, pady=5)
+        
+        ctk.CTkButton(aliasFrame, text="Load Layout", command=loadLayoutCallback).grid(row=3, column=0, sticky="EW", padx=5, pady=5)
         
         # SEQUENCING SETTINGS
         seqFrame = ctk.CTkScrollableFrame(self)
@@ -535,6 +537,98 @@ class BigPictureConfigurationPanel(ctk.CTkFrame):
     @property
     def savedData(self):
         return self.__savedData
+    
+class DefaultBigPictureLayout:    
+    @staticmethod
+    def createTitleFrame(parent):
+        LARGE = ctk.CTkFont("Bahnschrift Semibold", 65, "bold", "roman")
+        SMALL = ctk.CTkFont("Bahnschrift Semibold", 36, "bold", "roman")
+        
+        frame = ctk.CTkFrame(parent, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        
+        titleContainerFrame = ctk.CTkFrame(frame, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        titleContainerFrame.pack(expand=True, side="top")
+        
+        titleLabel = ctk.CTkLabel(titleContainerFrame, text="", font=LARGE, wraplength=1000, text_color=Color.WHITE)
+        titleLabel.pack(expand=True, side="top")
+        
+        subtitleLabel = ctk.CTkLabel(titleContainerFrame, text="", font=SMALL, wraplength=1000, text_color=Color.WHITE)
+        subtitleLabel.pack(expand=True, side="top")
+        
+        parent.tagWidget("title", titleLabel)
+        parent.tagWidget("subtitle", subtitleLabel)
+        
+        return frame
+
+    @staticmethod
+    def createRoundFrame(parent):
+        LARGE = ctk.CTkFont("Bahnschrift Semibold", 65, "bold", "roman")
+        SMALL = ctk.CTkFont("Bahnschrift Semibold", 36, "bold", "roman")
+        
+        frame = ctk.CTkFrame(parent, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        
+        roundContainerFrame = ctk.CTkFrame(frame, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        roundContainerFrame.pack(expand=True, side="top")
+        
+        roundCountLabel = ctk.CTkLabel(roundContainerFrame, text="", font=SMALL, wraplength=1000, text_color=Color.WHITE)
+        roundCountLabel.pack(side="top")
+        
+        roundNameLabel = ctk.CTkLabel(roundContainerFrame, text="", font=LARGE, wraplength=1000, text_color=Color.WHITE)
+        roundNameLabel.pack(expand=False, side="top")
+        
+        parent.tagWidget("roundCount", roundCountLabel)
+        parent.tagWidget("roundName", roundNameLabel)
+        
+        return frame
+
+    @staticmethod
+    def createQuestionFrame(parent):
+        LARGE = ctk.CTkFont("Bahnschrift Semibold", 65, "bold", "roman")
+        
+        frame = ctk.CTkFrame(parent, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        
+        label = ctk.CTkLabel(frame, text="", font=LARGE, wraplength=1000, text_color=Color.WHITE)
+        label.pack(expand=True, side="top")
+        
+        aidDisplay = BigPictureAidDisplay(frame)
+        aidDisplay.pack(expand=True, fill="both", padx=10, pady=10)
+        
+        parent.tagWidget("question", label)
+        parent.tagWidget("questionAid", aidDisplay)
+        
+        return frame
+
+    @staticmethod
+    def createScoreboardFrame(parent):
+        frame = ctk.CTkScrollableFrame(parent)
+        
+        parent.tagWidget("scoreboard", frame)
+        
+        return frame
+
+    @staticmethod
+    def createBlankFrame(parent):
+        EXTRA_LARGE = ctk.CTkFont("Bahnschrift Semibold", 140, "bold", "roman")
+        
+        frame = ctk.CTkFrame(parent, bg_color=Color.BLACK, fg_color=Color.BLACK)
+        
+        buzzedLabel = ctk.CTkLabel(parent, bg_color=Color.BLACK, fg_color=Color.BLACK, text="", font=EXTRA_LARGE, wraplength=1500, text_color=Color.WHITE)
+        buzzedLabel.pack(padx=5, pady=15, side="bottom")
+        
+        parent.tagWidget("buzzer", buzzedLabel)
+        
+        return frame
+    
+    @staticmethod
+    def createScoreboardItem(parent, teamName, score, color):
+        EXTRA_LARGE = ctk.CTkFont("Bahnschrift Semibold", 140, "bold", "roman")
+        
+        frame = ctk.CTkFrame(parent)
+        
+        ctk.CTkLabel(frame, text=teamName, font=EXTRA_LARGE, text_color=color).pack(padx=10, pady=10, side="left")
+        ctk.CTkLabel(frame, text=str(score), font=EXTRA_LARGE, text_color=color).pack(padx=10, pady=10, side="right")
+        
+        frame.pack(padx=5, pady=5, fill="x")
 
 class BigPicture(ctk.CTkToplevel):
     def __init__(self, master=None, **kwargs):
@@ -548,11 +642,10 @@ class BigPicture(ctk.CTkToplevel):
         
         fonts = Font()
         
-        self.loadLayout(firstSetup=True)
+        self.loadDefaultLayout(firstSetup=True)
         
         # BUZZED LABEL
-        self.buzzedLabel = ctk.CTkLabel(self, bg_color=Color.BLACK, fg_color=Color.BLACK, text="", font=fonts.EXTRA_LARGE, wraplength=1500, text_color=Color.WHITE)
-        self.buzzedLabel.pack(padx=5, pady=15, side="bottom")
+        
         
         self.title("Buzzer System Big Picture Display")
         
@@ -562,13 +655,14 @@ class BigPicture(ctk.CTkToplevel):
         
         self.__title = ""
         
-    def loadLayout(self, name=None, firstSetup=False):
+    def resetLayoutTags(self, firstSetup=False):
         self.__taggedWidgets = {
             "title" : [],
             "subtitle" : [],
             "roundName" : [],
             "roundCount" : [],
             "question" : [],
+            "scoreboard" : [],
             "buzzer" : []
         }
         
@@ -579,26 +673,85 @@ class BigPicture(ctk.CTkToplevel):
             self.roundFrame.destroy()
             self.questionFrame.destroy()
             self.scoreboardFrame.destroy()
+            
+    def loadDefaultLayout(self, firstSetup=False):
+        self.resetLayoutTags(firstSetup)
         
-        layoutContrustor = importlib.import_module("assets.bigPictureLayouts.default")
-        
-        self.titleFrame = layoutContrustor.createTitleFrame(self)
-        self.roundFrame = layoutContrustor.createRoundFrame(self)
-        self.questionFrame = layoutContrustor.createQuestionFrame(self)
-        self.scoreboardFrame = layoutContrustor.createScoreboardFrame(self)
-        self.blankFrame = layoutContrustor.createBlankFrame(self)
+        self.titleFrame = DefaultBigPictureLayout.createTitleFrame(self)
+        self.roundFrame = DefaultBigPictureLayout.createRoundFrame(self)
+        self.questionFrame = DefaultBigPictureLayout.createQuestionFrame(self)
+        self.scoreboardFrame = DefaultBigPictureLayout.createScoreboardFrame(self)
+        self.blankFrame = DefaultBigPictureLayout.createBlankFrame(self)
+        self.scoreboardCreate = DefaultBigPictureLayout.createScoreboardItem
         
         self.displayBlank()
         
-        ## NEED WAY TO LOAD & HANDLING SCOREBOARDS
+        self.__layoutName = "DEFAULT"
+        
+    def loadLayout(self, name, firstSetup=False):
+        self.resetLayoutTags(firstSetup)
+        
+        if name is None or name == "DEFAULT":
+            self.loadDefaultLayout(firstSetup)
+            return
+        
+        self.__layoutName = name
+        layoutContrustor = importlib.import_module("assets.bigPictureLayouts." + name)
+        
+        try:
+            self.titleFrame = layoutContrustor.createTitleFrame(self)
+        except AttributeError:
+            self.titleFrame = DefaultBigPictureLayout.createTitleFrame(self)
+            
+        try:
+            self.roundFrame = layoutContrustor.createRoundFrame(self)
+        except AttributeError:
+            self.roundFrame = DefaultBigPictureLayout.createRoundFrame(self)
+            
+        try:
+            self.questionFrame = layoutContrustor.createQuestionFrame(self)
+        except AttributeError:
+            self.questionFrame = DefaultBigPictureLayout.createQuestionFrame(self)
+            
+        try:
+            self.scoreboardFrame = layoutContrustor.createScoreboardFrame(self)
+        except AttributeError:
+            self.scoreboardFrame = DefaultBigPictureLayout.createScoreboardFrame(self)
+            
+        try:
+            self.blankFrame = layoutContrustor.createBlankFrame(self)
+        except AttributeError:
+            self.blankFrame = DefaultBigPictureLayout.createBlankFrame(self)
+            
+        try:
+            self.scoreboardCreate = layoutContrustor.createScoreboardItem
+        except AttributeError:
+            self.scoreboardCreate = DefaultBigPictureLayout.createScoreboardItem
+        
+        self.displayBlank()
         
     def tagWidget(self, type, widget):
         if type in self.__taggedWidgets:
             self.__taggedWidgets[type].append(widget)
-        elif type == "scoreboard":
-            pass
         elif type == "questionAid":
             self.__aidDisplay = widget
+            
+    def getScoresFromTeams(self, teams):
+        teamDict = {}
+        for team in teams:
+            teamDict[team.alias] = [team.score, team.activeColor]
+        scores =  sorted(teamDict.items(), key=lambda x: x[1][0], reverse=True)
+        return scores
+            
+    def updateValues(self, teams):
+        scores = self.getScoresFromTeams(teams)
+        
+        for scoreboard in self.__taggedWidgets["scoreboard"]:
+            for child in scoreboard.winfo_children():
+                child.destroy()
+                
+            for score in scores:
+                self.scoreboardCreate(scoreboard, score[0], score[1][0], score[1][1])
         
     def updateRound(self, roundIndex, totalRounds, roundName):
         for label in self.__taggedWidgets["roundCount"]:
@@ -694,6 +847,10 @@ class BigPicture(ctk.CTkToplevel):
     @property
     def currentDisplay(self):
         return self.__currentDisplay
+    
+    @property
+    def layoutName(self):
+        return self.__layoutName
         
     def updateBuzzerAlias(self, team, buzzer, color=Color.WHITE):
         if team == "" and buzzer == "":
@@ -734,7 +891,49 @@ class BigPicture(ctk.CTkToplevel):
                 self.displayScoreboard()
             case 6:
                 self.displayBlank()
-                
+
+class ConfigurationSetCreator(ctk.CTkToplevel):
+    def __init__(self, master, questionSets, teamConfigs, bigPictureConfigs, callback, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.grab_set()
+        
+        self.iconpath = ImageTk.PhotoImage(file=path.join("assets", "icon.png"))
+        self.wm_iconbitmap()
+        self.iconphoto(False, self.iconpath)
+        
+        self.__name = ctk.CTkEntry(self)
+        self.__name.pack(padx=5, pady=5, fill="x")
+        
+        ctk.CTkLabel(self, text="Question Set").pack(padx=5, pady=5)
+        self.__questionSet = ctk.CTkOptionMenu(self, values=questionSets)
+        self.__questionSet.set(questionSets[0])
+        self.__questionSet.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(self, text="Team Configuration").pack(padx=5, pady=5)
+        self.__teamConfig = ctk.CTkOptionMenu(self, values=teamConfigs)
+        self.__teamConfig.set(teamConfigs[0])
+        self.__teamConfig.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(self, text="Big Picture Configuration").pack(padx=5, pady=5)
+        self.__bigPictureConfig = ctk.CTkOptionMenu(self, values=bigPictureConfigs)
+        self.__bigPictureConfig.set(bigPictureConfigs[0])
+        self.__bigPictureConfig.pack(fill="x", padx=5, pady=5)
+        
+        self.__callback = callback
+        
+        ctk.CTkButton(self, text="Submit Choice", command=self.submit).pack(fill="x", padx=5, pady=5)
+        
+        self.title("Configuration Set Creator")
+            
+    def submit(self):
+        value = self.get()
+        self.destroy()
+        self.__callback(*value)
+        
+    def get(self):
+        return self.__name.get(), self.__questionSet.get(), self.__teamConfig.get(), self.__bigPictureConfig.get()
+
 class Selector(ctk.CTkToplevel):
     def __init__(self, master, options, callback, callbackArgs=None, **kwargs):
         super().__init__(master, **kwargs)

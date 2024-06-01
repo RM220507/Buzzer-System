@@ -844,6 +844,7 @@
                 </child>
                 <child>
                   <object class="customtkinter.CTkButton" id="buzzerFuncConfigSetSaveBtn" named="True">
+                    <property name="command" type="command" cbtype="simple">saveConfigSetPrompt</property>
                     <property name="text" translatable="yes">Save a Configuration Set</property>
                     <layout manager="grid">
                       <property name="column">1</property>

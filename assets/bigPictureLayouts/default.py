@@ -59,7 +59,7 @@ def createQuestionFrame(parent):
     return frame
 
 def createScoreboardFrame(parent):
-    frame = BigPictureScoreboard(parent)
+    frame = ctk.CTkScrollableFrame(parent)
     
     parent.tagWidget("scoreboard", frame)
     
@@ -68,3 +68,11 @@ def createScoreboardFrame(parent):
 def createBlankFrame(parent):
     frame = ctk.CTkFrame(parent, bg_color=BLACK, fg_color=BLACK)
     return frame
+
+def createScoreboardItem(parent, teamName, score, color):
+    frame = ctk.CTkFrame(parent)
+    
+    ctk.CTkLabel(frame, text=teamName, font=EXTRA_LARGE, text_color=color).grid(row=0, column=0, sticky="W")
+    ctk.CTkLabel(frame, text=str(score), font=EXTRA_LARGE, text_color=color).grid(row=0, column=1, sticky="E")
+    
+    frame.pack(padx=5, pady=5)
