@@ -4,10 +4,12 @@ import tkinter as tk
 from tkinter import messagebox
 import vlc
 from pygame import mixer
-from PIL import ImageTk
+from PIL import ImageTk, ImageGrab
 import json
 from os import path
 import importlib
+import win32gui
+import screenshot
 
 mixer.init()
 
@@ -38,7 +40,6 @@ class MacroController(ctk.CTkFrame):
             btn.grid(row=i//3, column=i%3, padx=5, pady=5, sticky="nsew")
             self.__btns.append(btn)
             
-        
     def execute(self, id):
         if 0 <= id < len(self.__commandBind):
             command = self.__commands.get(self.__commandBind[id])
@@ -644,9 +645,6 @@ class BigPicture(ctk.CTkToplevel):
         
         self.loadDefaultLayout(firstSetup=True)
         
-        # BUZZED LABEL
-        
-        
         self.title("Buzzer System Big Picture Display")
         
         self.fullscreen = False
@@ -668,11 +666,8 @@ class BigPicture(ctk.CTkToplevel):
         
         self.__aidDisplay = None
         
-        if not firstSetup:
-            self.titleFrame.destroy()
-            self.roundFrame.destroy()
-            self.questionFrame.destroy()
-            self.scoreboardFrame.destroy()
+        for child in self.winfo_children():
+            child.destroy()
             
     def loadDefaultLayout(self, firstSetup=False):
         self.resetLayoutTags(firstSetup)
@@ -695,8 +690,12 @@ class BigPicture(ctk.CTkToplevel):
             self.loadDefaultLayout(firstSetup)
             return
         
+        
+        if name != self.__layoutName:
+            layoutContrustor = self.layoutContrustor = importlib.import_module("assets.bigPictureLayouts." + name)
+        else:
+            layoutContrustor = self.layoutContrustor = importlib.reload(self.layoutContrustor)
         self.__layoutName = name
-        layoutContrustor = importlib.import_module("assets.bigPictureLayouts." + name)
         
         try:
             self.titleFrame = layoutContrustor.createTitleFrame(self)
@@ -803,6 +802,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack(expand=True, fill="both", side="top")
         
         self.__currentDisplay = "blank"
+        #self.after(1000, self.takeScreenshot)
         
     def displayTitle(self):
         self.roundFrame.pack_forget()
@@ -812,6 +812,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "title"
+        #self.after(1000, self.takeScreenshot)
         
     def displayRound(self):
         self.roundFrame.pack(expand=True, fill="both", side="top")
@@ -821,6 +822,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "round"
+        #self.after(1000, self.takeScreenshot)
         
     def displayQuestion(self):
         self.roundFrame.pack_forget()
@@ -830,6 +832,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "question"
+        #self.after(1000, self.takeScreenshot)
         
     def displayScoreboard(self):
         self.roundFrame.pack_forget()
@@ -839,6 +842,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "scoreboard"
+        #self.after(1000, self.takeScreenshot)
         
     @property
     def aidDisplay(self):
@@ -865,7 +869,7 @@ class BigPicture(ctk.CTkToplevel):
                     labelText = buzzer
             else:
                 labelText = ""
-            
+                
         for label in self.__taggedWidgets["buzzer"]:
             label.configure(text=labelText, text_color=color)
         
@@ -891,6 +895,15 @@ class BigPicture(ctk.CTkToplevel):
                 self.displayScoreboard()
             case 6:
                 self.displayBlank()
+                
+    def takeScreenshot(self):
+        hwnd = self.winfo_id()
+        
+        #win32gui.SetForegroundWindow(hwnd)
+        bbox = win32gui.GetWindowRect(hwnd)
+        
+        img = screenshot.grab_screen(bbox)
+        img.show()
 
 class ConfigurationSetCreator(ctk.CTkToplevel):
     def __init__(self, master, questionSets, teamConfigs, bigPictureConfigs, callback, **kwargs):
