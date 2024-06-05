@@ -18,6 +18,8 @@ from PIL import ImageTk
 import socketio as sio
 import eventlet
 from glob import glob
+import cv2 as cv
+import base64
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "assets/mainUI.ui"
@@ -575,6 +577,9 @@ class FarThrowServer(threading.Thread):
     def sendBuzz(self, teamAlias, buzzerAlias):
         self.server.emit("buzz", [teamAlias, buzzerAlias])
         
+    def sendImage(self, image):
+        self.server.emit("image", image)
+        
     def run(self):
         eventlet.wsgi.server(eventlet.listen(("", 8000)), self.app)
         
@@ -624,10 +629,18 @@ class CommandSendController:
         }
         
         self.__sender.sendUpdate(updateData)
-            
+        
     def sendBuzz(self, teamAlias, buzzerAlias, activeColor):
         if isinstance(self.__sender, FarThrowServer):
             self.__sender.sendBuzz(teamAlias, buzzerAlias)
+            
+    def sendImage(self, image):
+        if isinstance(self.__sender, FarThrowServer):
+            #success, buffer = cv.imencode(".jpg", image)
+            
+            #jpg_as_text = base64.b64encode(buffer)
+            
+            self.__sender.sendImage(image.tolist())
 
 class Color:
     WHITE = "#FFF"
@@ -1218,7 +1231,7 @@ class BuzzerControlApp:
 
     def openBigPicture(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            self.bigPicture = BigPicture(self.mainwindow)
+            self.bigPicture = BigPicture(self.mainwindow, self.__sendController.sendImage)
 
             self.__questionAidController.setBigPictureDisplay(
                 self.bigPicture.aidDisplay)

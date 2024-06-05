@@ -4,12 +4,14 @@ import tkinter as tk
 from tkinter import messagebox
 import vlc
 from pygame import mixer
-from PIL import ImageTk, ImageGrab
+from PIL import ImageTk
 import json
 from os import path
 import importlib
 import win32gui
 import screenshot
+import cv2
+import numpy as np
 
 mixer.init()
 
@@ -632,7 +634,7 @@ class DefaultBigPictureLayout:
         frame.pack(padx=5, pady=5, fill="x")
 
 class BigPicture(ctk.CTkToplevel):
-    def __init__(self, master=None, **kwargs):
+    def __init__(self, master, sendImageCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.configure(fg_color=Color.BLACK)
@@ -652,6 +654,8 @@ class BigPicture(ctk.CTkToplevel):
         self.__currentDisplay = "blank"
         
         self.__title = ""
+        
+        self.__sendImageCallback = sendImageCallback
         
     def resetLayoutTags(self, firstSetup=False):
         self.__taggedWidgets = {
@@ -690,40 +694,39 @@ class BigPicture(ctk.CTkToplevel):
             self.loadDefaultLayout(firstSetup)
             return
         
-        
         if name != self.__layoutName:
-            layoutContrustor = self.layoutContrustor = importlib.import_module("assets.bigPictureLayouts." + name)
+            layoutConstructor = self.layoutConstructor = importlib.import_module("assets.bigPictureLayouts." + name)
         else:
-            layoutContrustor = self.layoutContrustor = importlib.reload(self.layoutContrustor)
+            layoutConstructor = self.layoutConstructor = importlib.reload(self.layoutConstructor)
         self.__layoutName = name
         
         try:
-            self.titleFrame = layoutContrustor.createTitleFrame(self)
+            self.titleFrame = layoutConstructor.createTitleFrame(self)
         except AttributeError:
             self.titleFrame = DefaultBigPictureLayout.createTitleFrame(self)
             
         try:
-            self.roundFrame = layoutContrustor.createRoundFrame(self)
+            self.roundFrame = layoutConstructor.createRoundFrame(self)
         except AttributeError:
             self.roundFrame = DefaultBigPictureLayout.createRoundFrame(self)
             
         try:
-            self.questionFrame = layoutContrustor.createQuestionFrame(self)
+            self.questionFrame = layoutConstructor.createQuestionFrame(self)
         except AttributeError:
             self.questionFrame = DefaultBigPictureLayout.createQuestionFrame(self)
             
         try:
-            self.scoreboardFrame = layoutContrustor.createScoreboardFrame(self)
+            self.scoreboardFrame = layoutConstructor.createScoreboardFrame(self)
         except AttributeError:
             self.scoreboardFrame = DefaultBigPictureLayout.createScoreboardFrame(self)
             
         try:
-            self.blankFrame = layoutContrustor.createBlankFrame(self)
+            self.blankFrame = layoutConstructor.createBlankFrame(self)
         except AttributeError:
             self.blankFrame = DefaultBigPictureLayout.createBlankFrame(self)
             
         try:
-            self.scoreboardCreate = layoutContrustor.createScoreboardItem
+            self.scoreboardCreate = layoutConstructor.createScoreboardItem
         except AttributeError:
             self.scoreboardCreate = DefaultBigPictureLayout.createScoreboardItem
         
@@ -802,7 +805,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack(expand=True, fill="both", side="top")
         
         self.__currentDisplay = "blank"
-        #self.after(1000, self.takeScreenshot)
+        self.after(1000, self.takeScreenshot)
         
     def displayTitle(self):
         self.roundFrame.pack_forget()
@@ -812,7 +815,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "title"
-        #self.after(1000, self.takeScreenshot)
+        self.after(1000, self.takeScreenshot)
         
     def displayRound(self):
         self.roundFrame.pack(expand=True, fill="both", side="top")
@@ -822,7 +825,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "round"
-        #self.after(1000, self.takeScreenshot)
+        self.after(1000, self.takeScreenshot)
         
     def displayQuestion(self):
         self.roundFrame.pack_forget()
@@ -832,7 +835,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "question"
-        #self.after(1000, self.takeScreenshot)
+        self.after(1000, self.takeScreenshot)
         
     def displayScoreboard(self):
         self.roundFrame.pack_forget()
@@ -842,7 +845,7 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "scoreboard"
-        #self.after(1000, self.takeScreenshot)
+        self.after(1000, self.takeScreenshot)
         
     @property
     def aidDisplay(self):
@@ -897,13 +900,17 @@ class BigPicture(ctk.CTkToplevel):
                 self.displayBlank()
                 
     def takeScreenshot(self):
-        hwnd = self.winfo_id()
+        return
         
-        #win32gui.SetForegroundWindow(hwnd)
+        """hwnd = self.winfo_id()
+        
         bbox = win32gui.GetWindowRect(hwnd)
         
         img = screenshot.grab_screen(bbox)
-        img.show()
+        
+        image_array = np.array(img)
+        
+        self.__sendImageCallback(image_array)"""
 
 class ConfigurationSetCreator(ctk.CTkToplevel):
     def __init__(self, master, questionSets, teamConfigs, bigPictureConfigs, callback, **kwargs):

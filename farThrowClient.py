@@ -85,12 +85,9 @@ class SerialController:
     def run(self):
         while True:
             try:
-                #if self.__port.is_open:
                 if self.checkBuffer():
                     data = self.getLine()
                     self.readCallback(data)
-                #else:
-                #    self.raiseException()
             except Exception as e:
                 self.raiseException()
                 print(e)
@@ -130,6 +127,19 @@ def receiveUpdate(data):
 def receiveBuzz(data):
     logging.debug("Receiving buzz notification.")
     print(f"BUZZED: {data[0]} - {data[1]}")
+    
+def receiveImage(data):
+    return
+    
+    """global image
+    
+    logging.debug("Receiving image data.")
+    
+    print("Image Received")
+    pil_image = Image.fromarray(np.array(data, dtype=np.uint8))
+    image_data = pil_image.tobytes()
+    image_dimensions = pil_image.size
+    image = pg.image.fromstring(image_data, image_dimensions, pil_image.mode)"""
 
 serialController = SerialController()
 
@@ -137,6 +147,7 @@ client.on("single", serialController.single)
 client.on("multi", serialController.multi)
 client.on("update", receiveUpdate)
 client.on("buzz", receiveBuzz)
+client.on("image", receiveImage)
 
 SERVER_HOST = input("Input the hostname to connect to: ")
 SERVER_PORT = input("Input port: ")
