@@ -18,8 +18,6 @@ from PIL import ImageTk
 import socketio as sio
 import eventlet
 from glob import glob
-import cv2 as cv
-import base64
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "assets/mainUI.ui"
@@ -71,8 +69,9 @@ class Sound:
     }
 
 class TeamController:
-    def __init__(self, questionController):
+    def __init__(self, questionController, updateScoresCallback):
         self.__questionController = questionController
+        self.__updateScoresCallback = updateScoresCallback
 
         self.__teams = []
 
@@ -124,6 +123,8 @@ class TeamController:
         for scoreboard in self.__scoreboards:
             if scoreboard.winfo_exists():
                 scoreboard.updateValues(self.__teams)
+                
+        self.__updateScoresCallback(self.__teams)
 
     def setActive(self, team, buzzer):
         self.__activeTeam = team
@@ -580,6 +581,12 @@ class FarThrowServer(threading.Thread):
     def sendImage(self, image):
         self.server.emit("image", image)
         
+    def sendBigPicture(self, name):
+        self.server.emit("bigPicture", name)
+        
+    def sendScores(self, scores):
+        self.server.emit("scores", scores)
+        
     def run(self):
         eventlet.wsgi.server(eventlet.listen(("", 8000)), self.app)
         
@@ -614,11 +621,8 @@ class CommandSendController:
             bigPictureDisplay = bigPicture.currentDisplay
         else:
             bigPictureDisplay = "closed"
-            
-        unsortedScores = {}
-        for team in teams:
-            unsortedScores[team.alias] = team.score
-        scores = sorted(unsortedScores.items(), key=lambda x:x[1], reverse=True)
+        
+        scores = self.getScoresFromTeams(teams)
         
         updateData = {
             "questionData" : questionManager.currentQuestion,
@@ -629,6 +633,13 @@ class CommandSendController:
         }
         
         self.__sender.sendUpdate(updateData)
+        
+    def getScoresFromTeams(self, teams):
+        unsortedScores = {}
+        for team in teams:
+            unsortedScores[team.alias] = team.score
+        scores = sorted(unsortedScores.items(), key=lambda x:x[1], reverse=True)
+        return scores
         
     def sendBuzz(self, teamAlias, buzzerAlias, activeColor):
         if isinstance(self.__sender, FarThrowServer):
@@ -641,6 +652,15 @@ class CommandSendController:
             #jpg_as_text = base64.b64encode(buffer)
             
             self.__sender.sendImage(image.tolist())
+            
+    def sendBigPicture(self, name):
+        if isinstance(self.__sender, FarThrowServer):
+            self.__sender.sendBigPicture(name)
+            
+    def sendScores(self, teams):
+        if isinstance(self.__sender, FarThrowServer):
+            scores = self.getScoresFromTeams(teams)
+            self.__sender.sendScores(scores)
 
 class Color:
     WHITE = "#FFF"
@@ -681,7 +701,7 @@ class BuzzerControlApp:
         self.__cursor = self.__db.cursor()  # type: ignore
 
         self.__questionManager = QuestionManager(self.__db, self.__cursor)
-        self.__teamController = TeamController(self.__questionManager)
+        self.__teamController = TeamController(self.__questionManager, self.sendScoreUpdate)
         self.__questionAidController = AidController(
             builder.get_object("currentQuestionFrame"))
 
@@ -714,45 +734,19 @@ class BuzzerControlApp:
         self.__soundboardWidget = Soundboard(
             builder.get_object("soundboardTab"), Sound)
         self.__soundboardWidget.pack(padx=5, pady=5, expand=True, fill="both")
-        
-        #! THE FOLLOWING COMMENT IS FOR USE WITH MACROS <- THESE HAVEN'T BEEN IMPLEMENTED YET, BUT WILL BE AT SOME POINT
-        """ #? RE-CREATE THE MACRO TAB WITH PYGUBU DESIGNER TO MAKE USE OF THIS
-        commands = {
-            "Host: Display Hosting Tab": lambda: self.builder.get_object("mainTabview").set("Hosting"),
-            "Host: Display Big Picture Tab": lambda: self.builder.get_object("mainTabview").set("Big Picture"),
-            "Host: Display Team Setup Tab": lambda: self.builder.get_object("mainTabview").set("Team Setup"),
-            "Host: Display Scoreboard Tab": lambda: self.builder.get_object("mainTabview").set("Scoreboard"),
-            "Host: Display Soundboard Tab": lambda: self.builder.get_object("mainTabview").set("Soundboard"),
-            "Host: Display Buzzer Functions Tab": lambda: self.builder.get_object("mainTabview").set("Buzzer Functions"),
-            "Host: Display Macros Tab": lambda: self.builder.get_object("mainTabview").set("Macros"),
-            "Big Picture: Open": self.openBigPicture,
-            "Big Picture: Display Question": self.showBigPictureQuestion,
-            "Big Picture: Display Round": self.showBigPictureRound,
-            "Big Picture: Display Title": self.showBigPictureTitle,
-            "Big Picture: Display Scoreboard": self.showBigPictureScoreboard,
-            "Big Picture: Display Blank": self.showBigPictureBlank,
-            "Soundboard: Play Correct": lambda: self.__soundboardWidget.play("Correct"),
-            "Soundboard: Play Incorrect": lambda: self.__soundboardWidget.play("Incorrect"),
-            "Soundboard: Play Buzzer": lambda: self.__soundboardWidget.play("Buzzer"),
-            "Soundboard: Play Victory": lambda: self.__soundboardWidget.play("Victory"),
-            "Soundboard: Play Klaxon": lambda: self.__soundboardWidget.play("Klaxon"),
-            "Soundboard: Play Sad Trombone": lambda: self.__soundboardWidget.play("Sad Trombone"),
-            "Soundboard: Play Ba Dum Crash": lambda: self.__soundboardWidget.play("Ba Dum Crash"),
-            "Soundboard: Play Drum Roll": lambda: self.__soundboardWidget.play("Drum Roll"),
-            "Soundboard: Stop": self.__soundboardWidget.stop,
-            "Buzzer Functions: Resend": self.buzzerFuncResend,
-            "Buzzer Functions: Lights On": self.buzzerFuncLightOn,
-            "Buzzer Functions: Lights Off": self.buzzerFuncLightOff,
-            "Buzzer Functions: Update Lights": self.buzzerFuncLightUpdate
-        }
-        self.__macroController = MacroController(
-            builder.get_object("macroTab"), commands, 6)
-        self.__macroController.pack(padx=5, pady=5, fill="both", expand=True)"""
 
     def run(self):
         self.__sendController.startThread()
 
         self.mainwindow.mainloop()
+        
+    def sendScoreUpdate(self, teams):
+        self.__sendController.sendScores(teams)
+        
+    def clearActiveBuzzer(self):
+        self.__teamController.clearActive()
+        self.clearBuzzerAliasLabel()
+        self.__sendController.sendBuzz("", "", None)
         
     def keyPressed(self, key):
         if key.char == "m" and not self.__muted:
@@ -1089,8 +1083,6 @@ class BuzzerControlApp:
             
         self.__teamController.updateScoreboards()
         messagebox.showinfo("Team Setup", "The team configuration was successfully sent to device.")
-
-        #self.__scoreboardWidget.updateValues(self.__teamController.teams)
         
     def restartSet(self):
         nextQ = self.__questionManager.restartSet()
@@ -1120,9 +1112,8 @@ class BuzzerControlApp:
             self.bigPicture.setConfig(saveData)
 
     def handleNextQuestion(self, questionData):
-        self.clearBuzzerAliasLabel()
         self.buzzerClose()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
         self.updateQuestionLabels(questionData)
         self.sendUpdate()
         
@@ -1204,6 +1195,7 @@ class BuzzerControlApp:
             
     def closeBigPicture(self):
         if self.bigPicture is not None and self.bigPicture.winfo_exists():
+            self.__sendController.sendBigPicture("closed")
             self.bigPicture.destroy()
 
     def skipQuestion(self):
@@ -1217,13 +1209,12 @@ class BuzzerControlApp:
     def buzzerClose(self):
         self.__sendController.singleSend(f"{CommandID.CLOSE}")
         self.showBuzzerClosedFrame()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
 
     def buzzerOpenAll(self):
         self.__sendController.singleSend(f"{CommandID.OPEN}")
         self.showBuzzerOpenFrame()
-        self.clearBuzzerAliasLabel()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
         
     def buzzerReopenAll(self):
         self.answeredIncorrect()
@@ -1231,7 +1222,7 @@ class BuzzerControlApp:
 
     def openBigPicture(self):
         if self.bigPicture is None or not self.bigPicture.winfo_exists():
-            self.bigPicture = BigPicture(self.mainwindow, self.__sendController.sendImage)
+            self.bigPicture = BigPicture(self.mainwindow, self.__sendController.sendImage, self.__sendController.sendBigPicture)
 
             self.__questionAidController.setBigPictureDisplay(
                 self.bigPicture.aidDisplay)
@@ -1324,32 +1315,28 @@ class BuzzerControlApp:
         self.__sendController.singleSend(f"{CommandID.OPEN_TEAM} {teamID}")
         self.showBuzzerOpenFrame()
 
-        self.clearBuzzerAliasLabel()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
 
     def buzzerOpenLockInd(self):
         self.__sendController.singleSend(
             f"{CommandID.OPEN_LOCK_IND} {self.__teamController.getActivePinIndex()}")
         self.showBuzzerOpenFrame()
 
-        self.clearBuzzerAliasLabel()
         self.__teamController.applyPenalty()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
 
     def buzzerOpenLockTeam(self):
         self.__sendController.singleSend(
             f"{CommandID.OPEN_LOCK_TEAM} {self.__teamController.activeTeam}")
         self.showBuzzerOpenFrame()
 
-        self.clearBuzzerAliasLabel()
         self.__teamController.applyPenalty()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
 
     def resetBuzzers(self):
         self.__sendController.singleSend(f"{CommandID.RESET_LOCK}")
         self.showBuzzerClosedFrame()
-        self.clearBuzzerAliasLabel()
-        self.__teamController.clearActive()
+        self.clearActiveBuzzer()
 
     def answeredCorrectly(self):
         self.__teamController.applyScore()
@@ -1430,6 +1417,7 @@ class BuzzerControlApp:
         self.__sendController.singleSend(f"{CommandID.IDENTIFY_TEAM} {teamID}")
         
         self.__teamController.setActive(teamID, -1)
+        self.__sendController.sendBuzz(*self.__teamController.getActiveAlias())
         self.updateBuzzerAliasLabel()
         self.showBuzzerBuzzedFrame()
         

@@ -634,7 +634,7 @@ class DefaultBigPictureLayout:
         frame.pack(padx=5, pady=5, fill="x")
 
 class BigPicture(ctk.CTkToplevel):
-    def __init__(self, master, sendImageCallback, **kwargs):
+    def __init__(self, master, sendImageCallback, changeDisplayCallback, **kwargs):
         super().__init__(master, **kwargs)
         
         self.configure(fg_color=Color.BLACK)
@@ -645,17 +645,16 @@ class BigPicture(ctk.CTkToplevel):
         
         fonts = Font()
         
-        self.loadDefaultLayout(firstSetup=True)
-        
         self.title("Buzzer System Big Picture Display")
         
         self.fullscreen = False
         
-        self.__currentDisplay = "blank"
-        
         self.__title = ""
         
         self.__sendImageCallback = sendImageCallback
+        self.__changeDisplayCallback = changeDisplayCallback
+        
+        self.loadDefaultLayout(firstSetup=True)
         
     def resetLayoutTags(self, firstSetup=False):
         self.__taggedWidgets = {
@@ -805,6 +804,8 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack(expand=True, fill="both", side="top")
         
         self.__currentDisplay = "blank"
+        self.__changeDisplayCallback("blank")
+        
         self.after(1000, self.takeScreenshot)
         
     def displayTitle(self):
@@ -815,6 +816,8 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "title"
+        self.__changeDisplayCallback("title")
+        
         self.after(1000, self.takeScreenshot)
         
     def displayRound(self):
@@ -825,6 +828,8 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "round"
+        self.__changeDisplayCallback("round")
+        
         self.after(1000, self.takeScreenshot)
         
     def displayQuestion(self):
@@ -835,6 +840,8 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "question"
+        self.__changeDisplayCallback("question")
+        
         self.after(1000, self.takeScreenshot)
         
     def displayScoreboard(self):
@@ -845,6 +852,8 @@ class BigPicture(ctk.CTkToplevel):
         self.blankFrame.pack_forget()
         
         self.__currentDisplay = "scoreboard"
+        self.__changeDisplayCallback("scoreboard")
+        
         self.after(1000, self.takeScreenshot)
         
     @property
@@ -901,7 +910,7 @@ class BigPicture(ctk.CTkToplevel):
                 
     def takeScreenshot(self):
         return
-        
+
         """hwnd = self.winfo_id()
         
         bbox = win32gui.GetWindowRect(hwnd)
